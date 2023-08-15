@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --job-name=Speed
+#SBATCH --account=sz11
+#SBATCH --time=04:00:00
+#SBATCH --ntasks=4
+#SBATCH --cpus-per-task=1
+#SBATCH --gres=gpu:1
+#SBATCH --partition=gpu
+
+module load python/3.9.10-linux-centos7-haswell-gcc10.2.0
+module load cuda/11.4
+source /fs03/sz11/deeplabcut/bin/activate
+export LD_LIBRARY_PATH=/home/czhe0008/sz11/sz11/deeplabcut/lib/python3.9/site-packages/tensorrt:$LD_LIBRARY_PATH
+cd /fs03/path_to_training.py
+python training.py
