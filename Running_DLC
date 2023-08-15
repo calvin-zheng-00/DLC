@@ -1,0 +1,28 @@
+DeepLabCut:
+User guide: https://deeplabcut.github.io/DeepLabCut/docs/standardDeepLabCut_UserGuide.html
+
+Run using python -m deeplabcut
+Or if using docker:
+deeplabcut-docker gui
+Or if on Massive:
+  For GUI:
+    module load deeplabcut
+    python -m deeplabcut
+  For terminal:
+    Bash dlc.sh
+      Do this command in the /home/sz11_scratch/calvin folder
+    Import deeplabcut
+When labelling frames, use “save selected layers”, not “save all layers”
+How to use DLC on Massive:
+Resnet file location: /home/czhe0008/sz11/DLC/resnet_v1_50.ckpt
+deeplabcut.train_network(‘/home/czhe0008/sz11/sz11/calvin/righthand-calvin-2023-05-09/config.yaml’, shuffle=1, trainingsetindex=0, gputouse=None, max_snapshots_to_keep=5, autotune=False, displayiters=2000, saveiters=10000, maxiters=50000, allow_growth=True)
+deeplabcut.evaluate_network(‘/home/czhe0008/sz11/sz11/calvin/righthand-calvin-2023-05-09/config.yaml’,Shuffles=[1], plotting=True)
+Note that by default the human labels are plotted as plus (‘+’), DeepLabCut’s predictions either as ‘.’ (for confident predictions with likelihood > p-cutoff) and ’x’ for (likelihood <= p-cutoff).
+deeplabcut.analyze_videos(config_path, ['fullpath/analysis/project/videos/reachingvideo1.avi'], save_as_csv=True)
+deeplabcut.filterpredictions(config_path, ['fullpath/analysis/project/videos/reachingvideo1.avi'])
+Sbatch job.script
+Show_job [#]
+Squeue -u `whoami`
+
+Anipose:
+Anipose: https://anipose.readthedocs.io/en/latest/
