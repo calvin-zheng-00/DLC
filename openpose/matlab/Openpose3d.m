@@ -1,39 +1,39 @@
 close all; clear all; clc;
 
 % Reading in data
-%File = readtable('activity1_filtered_2.csv');
-File = readtable('activity4_filtered.csv');
-T=File;
-
+%File = readtable('C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\json_calib_test\3d\p19\df_3d.csv');
+File = readtable('C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\3d\p19_3d_sorted\Instructions_COO4\20240809T123843-123853\df_3d.csv');
+%File = readtable('C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\p16_cat\Instructions_DIG7\20240802T124716-124725_filtered.csv');
+%T=File;
 % If a video needs cropping:
 %T(end-80:end,:) = [];
 %T(1:120,:) = [];
-
-reach_time = 80;
-reach_start = T.RW_z(1) + 70;
-reach_end = T.IT_z(reach_time);
-reach_end2 = T.IT_z(1);
-test = reach_end2 - reach_end;
+T = File;
+for i = 0:((width(T)/3)-1)
+    T{:,i*3 + 1} = T{:,i*3 + 1} - File{:,67};
+    T{:,i*3 + 2} = T{:,i*3 + 2} - File{:,68};
+    T{:,i*3 + 3} = T{:,i*3 + 3} - File{:,69};
+end
 
 
 h = height(T); % Number of rows in table
-startFrame = 80;
+startFrame = 1;
 
 ThumbPlot = plot3([T.TT_z(startFrame),T.TIP_z(startFrame),T.TMCP_z(startFrame),T.TCMC_z(startFrame),T.RW_z(startFrame)], ...
     [T.TT_x(startFrame),T.TIP_x(startFrame),T.TMCP_x(startFrame),T.TCMC_x(startFrame),T.RW_x(startFrame)], ...
     [T.TT_y(startFrame),T.TIP_y(startFrame),T.TMCP_y(startFrame),T.TCMC_y(startFrame),T.RW_y(startFrame)], ...
     '-o', 'MarkerSize',3,'MarkerFaceColor','r');
-axis([800 1600 -400 400 -400 200]) % Setting plot borders [X, Y, Z]
-% axis([800 1600 -400 200 -400 200])
-% Default: axis([-400 1200 -300 300 -300 300])
+% Default: axis([1000 2000 -400 400 -400 400]) % Setting plot borders [X, Y, Z]
+%axis([1400 2200 -600 200 -600 400])
+axis([-700 100 -600 200 -400 400])
 
 % Stitch together different view points
 
 hold on
-xlabel('x (mm)')
+xlabel('z (mm)')
 ylabel('y (mm)')
-zlabel('z (mm)')
-title('Typing on phone activity')
+zlabel('x (mm)')
+title('Activity')
 
 %reachPlotmeasured = plot3([reach_start, reach_end],[0,0],[0,0],'-o', 'MarkerSize',3,'MarkerFaceColor','k');
 %reachPlotexpected = plot3([reach_start, reach_start-390],[0,0],[0,0],'-o', 'MarkerSize',3,'MarkerFaceColor','k');
@@ -41,14 +41,16 @@ title('Typing on phone activity')
 % Setting camera angle (and reversing the y in relation to the x and z values)
 set(gca, 'XDir','reverse')
 set(gca, 'ZDir','reverse')
+set(gca, 'fontsize',14)
 set(gcf,'position',[200,200,600,570])
 % Default is back view
 %view([90 10]) %front view
-%view([160 30]) %left side view
-view([0 90]) %right side view
+%view([150 30]) %left side view
+%view([0 90]) %top right side view
+view([50 30]) %e3v834c view
 
-myVideo = VideoWriter('test.avi');
-myVideo.FrameRate = 40;
+myVideo = VideoWriter('video.avi');
+myVideo.FrameRate = 30;
 % 1-240, 280-520, 600-800, 880-1080, 1160-end
 open(myVideo)
 
