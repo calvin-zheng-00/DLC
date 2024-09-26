@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 
-src = 'C:/Users/czhe0008/Documents/DLCprojects/openpose/data_conversion/p2_arm_5cam_filtered'
-dest = 'C:/Users/czhe0008/Documents/DLCprojects/openpose/data_conversion/p2_arm_5cam_filtered_angles'
+src = 'C:/Users/czhe0008/Documents/DLCprojects/openpose/data_conversion/massive_3d/p16_filter'
+dest = 'C:/Users/czhe0008/Documents/DLCprojects/openpose/data_conversion/massive_3d/p16_angles'
 finger = ["TCMC_x","TMCP_x","TIP_x","IMCP_x","IPIP_x","IDIP_x","MMCP_x","MPIP_x","MDIP_x","RMCP_x","RPIP_x","RDIP_x","LMCP_x","LPIP_x","LDIP_x"]
 arm = ["RE_x"]
 abduct = ["IMCP_x","MMCP_x","RMCP_x","LMCP_x"]
@@ -84,6 +84,26 @@ def calculate_angles(data, outloc):
         res = v1norm[0] * v2norm[0] + v1norm[1] * v2norm[1] + v1norm[2] * v2norm[2]
         df2[col_name] = np.arccos(res)
     
+    # Thumb abduction perpendicular to the index plane (TCMC-TMCP vs TCMC-IMCP along the TCMC-IMCP-IPIP plane)
+    # v1 = [df.loc[:, 'TCMC_x']-df.loc[:, 'IMCP_x'],df.loc[:, 'TCMC_y']-df.loc[:, 'IMCP_y'],df.loc[:, 'TCMC_z']-df.loc[:, 'IMCP_z']]
+    # v2 = [df.loc[:, 'IPIP_x']-df.loc[:, 'IMCP_x'],df.loc[:, 'IPIP_y']-df.loc[:, 'IMCP_y'],df.loc[:, 'IPIP_z']-df.loc[:, 'IMCP_z']]
+    # v1 = np.transpose(v1)
+    # v2 = np.transpose(v2)
+    # ind_norm = np.cross(v1,v2) # An array of groups of 3 coordinates. [[norm1],[norm2],[norm3],...]
+    # ind_normt = np.transpose(ind_norm)  # Normal to the palm plane
+    # ind_normmag = np.sqrt(np.square(ind_normt[0]) + np.square(ind_normt[1]) + np.square(ind_normt[2]))
+    # ind_unitnorm = [np.divide(ind_normt[0],ind_normmag), np.divide(ind_normt[1],ind_normmag), np.divide(ind_normt[2],ind_normmag)]
+    # v3 = [df.loc[:, 'TMCP_x']-df.loc[:, 'TCMC_x'],df.loc[:, 'TMCP_y']-df.loc[:, 'TCMC_y'],df.loc[:, 'TMCP_z']-df.loc[:, 'TCMC_z']]
+    # v3_np = norm*((v3[0]*ind_normt[0] + v3[1] * ind_normt[1] + v3[2] * ind_normt[2])/np.square(ind_normmag))[:, None]   # Vector component normal to the plane
+    # v3_np = np.transpose(v3_np)
+    # v3_p = [v3[0]-v3_np[0],v3[1]-v3_np[1],v3[2]-v3_np[2]]                                       # Vector component on the plane
+    # v3mag = np.sqrt(np.square(v3_p[0]) + np.square(v3_p[1]) + np.square(v3_p[2]))
+    # v3norm = [np.divide(v3_p[0],v3mag), np.divide(v3_p[1],v3mag), np.divide(v3_p[2],v3mag)]
+    # v1mag = np.sqrt(np.square(v1[0]) + np.square(v1[1]) + np.square(v1[2]))
+    # v1norm = [v1[0].div(v1mag), v1[1].div(v1mag), v1[2].div(v1mag)]
+    # res = v1norm[0] * v3norm[0] + v1norm[1] * v3norm[1] + v1norm[2] * v3norm[2]
+    # df2["TMCP_abd"] = np.arccos(res)
+
     # Thumb abduction (from TMCP to TCMC to IMCP)
     v1 = [df.loc[:, 'TMCP_x']-df.loc[:, 'TCMC_x'],df.loc[:, 'TMCP_y']-df.loc[:, 'TCMC_y'],df.loc[:, 'TMCP_z']-df.loc[:, 'TCMC_z']]
     v2 = [df.loc[:, 'IMCP_x']-df.loc[:, 'TCMC_x'],df.loc[:, 'IMCP_y']-df.loc[:, 'TCMC_y'],df.loc[:, 'IMCP_z']-df.loc[:, 'TCMC_z']]
@@ -94,7 +114,7 @@ def calculate_angles(data, outloc):
     res = v1norm[0] * v2norm[0] + v1norm[1] * v2norm[1] + v1norm[2] * v2norm[2]
     df2["TMCP_abd"] = np.arccos(res)
 
-    # Thumb rotation (rotation of TMCP to TCMC around TCMC to IMCP)
+    # Thumb rotation (rotation of TMCP to TCMC around TCMC to IMCP) (Reference is IMCP to TCMC to W)
     v1 = [df.loc[:, 'TMCP_x']-df.loc[:, 'TCMC_x'],df.loc[:, 'TMCP_y']-df.loc[:, 'TCMC_y'],df.loc[:, 'TMCP_z']-df.loc[:, 'TCMC_z']]
     v2 = [df.loc[:, 'IMCP_x']-df.loc[:, 'TCMC_x'],df.loc[:, 'IMCP_y']-df.loc[:, 'TCMC_y'],df.loc[:, 'IMCP_z']-df.loc[:, 'TCMC_z']]
     v3 = [df.loc[:, 'RW_x']-df.loc[:, 'TCMC_x'],df.loc[:, 'RW_y']-df.loc[:, 'TCMC_y'],df.loc[:, 'RW_z']-df.loc[:, 'TCMC_z']]
@@ -163,7 +183,7 @@ def calculate_angles(data, outloc):
     df2["W_rot"] = np.arccos(res)
 
     # Find shoulder abduction by using Shoulder, Chest, Pelvis to find the plane
-    v1 = [df.loc[:, 'P_x']-df.loc[:, 'C_x'],df.loc[:, 'P_y']-df.loc[:, 'C_y'],df.loc[:, 'P_z']-df.loc[:, 'C_z']]
+    v1 = [df.loc[:, 'N_x']-df.loc[:, 'C_x'],df.loc[:, 'N_y']-df.loc[:, 'N_y'],df.loc[:, 'N_z']-df.loc[:, 'C_z']]
     v2 = [df.loc[:, 'RS_x']-df.loc[:, 'C_x'],df.loc[:, 'RS_y']-df.loc[:, 'C_y'],df.loc[:, 'RS_z']-df.loc[:, 'C_z']]
     v1 = np.transpose(v1)
     v2 = np.transpose(v2)
@@ -186,7 +206,7 @@ def calculate_angles(data, outloc):
     res = v1norm[0] * v2norm[0] + v1norm[1] * v2norm[1] + v1norm[2] * v2norm[2]
     df2["RS_flex"] = np.arccos(res)
 
-    # Shoulder abduction
+    # Shoulder abduction (Forwards and backwards)
     v1npmag = np.sqrt(np.square(v1_np[0]) + np.square(v1_np[1]) + np.square(v1_np[2]))
     res = np.divide(v1npmag, v1mag)
     df2["RS_abd"] = np.arctan(res)
@@ -196,7 +216,7 @@ def calculate_angles(data, outloc):
     #res = v1norm[0] * v0norm[0] + v1norm[1] * v0norm[1] + v1norm[2] * v0norm[2]
     #df2["RS_rot"] = np.arccos(res)
 
-    # Shoulder rotation
+    # Shoulder rotation comparing arm plane (W,E,S) to chest plane (S,C,P)
     unit_chest_norm = [np.divide(chest_normt[0],chest_normmag), np.divide(chest_normt[1],chest_normmag), np.divide(chest_normt[2],chest_normmag)]
     res = unit_arm_norm[0] * unit_chest_norm[0] + unit_arm_norm[1] * unit_chest_norm[1] + unit_arm_norm[2] * unit_chest_norm[2]
     df2["RS_rot"] = np.arccos(res)
@@ -235,7 +255,7 @@ else:
         for file in os.listdir(trial):
             if file[-9:] == 'df_3d.csv':
                 data = os.path.join(trial, file)
-                output_loc = os.path.join(dest,file[0:-9])
+                output_loc = os.path.join(dest,foldername)
                 output_loc = output_loc + "_angles.csv"
                 print(file)
                 calculate_angles(data,output_loc)
