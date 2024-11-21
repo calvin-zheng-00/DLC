@@ -7,9 +7,12 @@ colnames = categorical(["Thumb cmc flexion","Thumb mcp flexion","Thumb ip flexio
     "Wrist flexion","Wrist Abduction","Wrist rotation",...
     "Elbow flexion","Shoulder flexion","Shoulder abduction","Shoulder rotation"]);
 colnames = reordercats(colnames,string(colnames));
+grasp_cat_num = [1,3,4,5,8,9,11,12,13,14,15,18,19];
+grasp_cat = dictionary(grasp_cat_num,["power_palm_5_tabd","power_pad_3_tabd","power_pad_4_tabd","power_pad_5_tabd",...
+    "precision_pad_2_tabd","precision_pad_3_tabd","precision_pad_5_tabd","precision_side_3_tabd","power_palm_noindex_tadd","power_palm_5_tadd",...
+    "int_side_2_tadd","finger_press","palm_press"]);
 % grasp = importdata("variance\grasp_perpar_peract.txt");
 % reach = importdata("variance\reach_perpar_peract.txt");
-% grasp = load("variance\grasp_perpar_peract.mat");
 grasp = load("variance\grasp_whole.mat");
 grasp = grasp.grasp_var;
 % lift = load("variance\lift_perpar_peract.mat");
@@ -29,6 +32,7 @@ reach = sqrt(reach);
 interaction = sqrt(interaction);
 
 order = load("variance\grasp_order.mat");
+order = order.grasp_order;
 
 %Reordering to move elbow column
 grasp = [grasp(:,1:15,:),grasp(:,17:25,:),grasp(:,16,:),grasp(:,26:28,:)]; % participants, joints, activities
@@ -163,6 +167,7 @@ interaction = [interaction(:,1:15,:,:),interaction(:,17:25,:,:),interaction(:,16
 grasp_mean = squeeze(mean(mean(grasp,1,"omitnan"),2,"omitnan"))';
 reach_mean = squeeze(mean(mean(reach,3,"omitnan"),2,"omitnan"));
 int_mean = squeeze(mean(mean(interaction,3,"omitnan"),2,"omitnan"));
+whole = [reach_mean;grasp_mean;int_mean];
 % std_diff = reach_mean-grasp_mean;
 % total_rank = [];
 % for i = 1:size(reach_mean,1)
@@ -184,18 +189,29 @@ int_mean = squeeze(mean(mean(interaction,3,"omitnan"),2,"omitnan"));
 
 
 % [h,p] = kstest(grasp_mean);
-test = [reach_mean;grasp_mean;int_mean];
+
 test2 = mean(elbow,2,"omitnan");
 test2 = (test2 - min(test2))/2;
-figure
-hold on
-plot((1:size(test,1))/40,test2,"b")
-plot((1:size(test,1))/40,test,"k")
-xline(1,"k","grasp")
-legend('elbow','std')
-xlabel('Time (s)')
-ylabel('standard deviation difference (degrees)')
-set(gcf, 'Position', get(0, 'Screensize'));
+
+
+for i = grasp_cat_num
+    filter = order == i;
+    temp = whole .* filter;
+    temp( :, all(~temp,1) ) = [];
+    figure
+    hold on
+    plot((1:size(temp,1))/40-1,test2,"b")
+    plot((1:size(temp,1))/40-1,temp,"k")
+    set(0, 'DefaultTextInterpreter', 'none')
+    titlestr = strcat("Average variance of the hand for activity group: ", grasp_cat(i));
+    title(titlestr)
+    xline(0,"k","grasp")
+    legend('elbow','std')
+    xlabel('Time (s)')
+    ylabel('standard deviation difference (degrees)')
+    set(gcf, 'Position', get(0, 'Screensize'));
+    saveas(gcf,strcat('C:\Users\czhe0008\Documents\DLCprojects\openpose\figures\matlab_gen\boxchart\raw_std_overtime\raw_std_',grasp_cat(i),'.png'))
+end
 
 %% STD of all joints
 % grasp_mean = squeeze(mean(grasp,1,"omitnan"))';
