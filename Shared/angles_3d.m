@@ -68,58 +68,62 @@ new_plane = cross(knuckles(2,:),palm_plane);
 new_plane = new_plane/norm(new_plane);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(-unproTable.IMCP_flex(grasp_time) - pi/2)*K + (1-cos(-unproTable.IMCP_flex(grasp_time) - pi/2))*K*K;
-IPIP = R*palm_plane'.*lengths(6);
+IPIP = (R*palm_plane')'.*lengths(6);
 K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane(2) palm_plane(1) 0];
 R = eye(3) + sin(-unproTable.IMCP_abd(grasp_time))*K + (1-cos(-unproTable.IMCP_abd(grasp_time)))*K*K;
-IPIP = R*IPIP + knuckles(2,:)';
+IPIP = (R*IPIP')' + knuckles(2,:);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(unproTable.IPIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.IPIP_flex(grasp_time)-pi))*K*K;
-IDIP = R*(IPIP-knuckles(2,:)').*(lengths(7)/lengths(6)) + IPIP;
+IDIP = (R*(IPIP-knuckles(2,:))')'.*(lengths(7)/lengths(6)) + IPIP;
 R = eye(3) + sin(unproTable.IDIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.IDIP_flex(grasp_time)-pi))*K*K;
-IT = R*(IDIP-IPIP).*(lengths(8)/lengths(7)) + IDIP;
+IT = (R*(IDIP-IPIP)')'.*(lengths(8)/lengths(7)) + IDIP;
 
 new_plane = cross(knuckles(3,:),palm_plane);
 new_plane = new_plane/norm(new_plane);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(-unproTable.MMCP_flex(grasp_time) - pi/2)*K + (1-cos(-unproTable.MMCP_flex(grasp_time) - pi/2))*K*K;
-MPIP = R*palm_plane'.*lengths(10);
+MPIP = (R*palm_plane')'.*lengths(10);
 K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane(2) palm_plane(1) 0];
 R = eye(3) + sin(-unproTable.MMCP_abd(grasp_time))*K + (1-cos(-unproTable.MMCP_abd(grasp_time)))*K*K;
-MPIP = R*MPIP + knuckles(3,:)';
+MPIP = (R*MPIP')' + knuckles(3,:);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(unproTable.MPIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.MPIP_flex(grasp_time)-pi))*K*K;
-MDIP = R*(MPIP-knuckles(3,:)').*(lengths(11)/lengths(10)) + MPIP;
+MDIP = (R*(MPIP-knuckles(3,:))')'.*(lengths(11)/lengths(10)) + MPIP;
 R = eye(3) + sin(unproTable.MDIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.MDIP_flex(grasp_time)-pi))*K*K;
-MT = R*(MDIP-MPIP).*(lengths(12)/lengths(11)) + MDIP;
+MT = (R*(MDIP-MPIP)')'.*(lengths(12)/lengths(11)) + MDIP;
 
 new_plane = cross(knuckles(4,:),palm_plane);
 new_plane = new_plane/norm(new_plane);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(-unproTable.RMCP_flex(grasp_time) - pi/2)*K + (1-cos(-unproTable.RMCP_flex(grasp_time) - pi/2))*K*K;
-RPIP = R*palm_plane'.*lengths(14);
+RPIP = (R*palm_plane')'.*lengths(14);
 K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane(2) palm_plane(1) 0];
 R = eye(3) + sin(-unproTable.RMCP_abd(grasp_time))*K + (1-cos(-unproTable.RMCP_abd(grasp_time)))*K*K;
-RPIP = R*RPIP + knuckles(4,:)';
+RPIP = (R*RPIP')' + knuckles(4,:);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(unproTable.RPIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.RPIP_flex(grasp_time)-pi))*K*K;
-RDIP = R*(RPIP-knuckles(4,:)').*(lengths(15)/lengths(14)) + RPIP;
+RDIP = (R*(RPIP-knuckles(4,:))')'.*(lengths(15)/lengths(14)) + RPIP;
 R = eye(3) + sin(unproTable.RDIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.RDIP_flex(grasp_time)-pi))*K*K;
-RT = R*(RDIP-RPIP).*(lengths(16)/lengths(15)) + RDIP;
+RT = (R*(RDIP-RPIP)')'.*(lengths(16)/lengths(15)) + RDIP;
 
 new_plane = cross(knuckles(5,:),palm_plane);
 new_plane = new_plane/norm(new_plane);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(-unproTable.LMCP_flex(grasp_time) - pi/2)*K + (1-cos(-unproTable.LMCP_flex(grasp_time) - pi/2))*K*K;
-LPIP = R*palm_plane'.*lengths(18);
+LPIP = (R*palm_plane')'.*lengths(18);
 K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane(2) palm_plane(1) 0];
 R = eye(3) + sin(-unproTable.LMCP_abd(grasp_time))*K + (1-cos(-unproTable.LMCP_abd(grasp_time)))*K*K;
-LPIP = R*LPIP + knuckles(5,:)';
+LPIP = (R*LPIP')' + knuckles(5,:);
 K = [0 -new_plane(3) new_plane(2); new_plane(3) 0 -new_plane(1); -new_plane(2) new_plane(1) 0];
 R = eye(3) + sin(unproTable.LPIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.LPIP_flex(grasp_time)-pi))*K*K;
-LDIP = R*(LPIP-knuckles(5,:)').*(lengths(19)/lengths(18)) + LPIP;
+LDIP = (R*(LPIP-knuckles(5,:))')'.*(lengths(19)/lengths(18)) + LPIP;
 R = eye(3) + sin(unproTable.LDIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.LDIP_flex(grasp_time)-pi))*K*K;
-LT = R*(LDIP-LPIP).*(lengths(20)/lengths(19)) + LDIP;
-
+LT = (R*(LDIP-LPIP)')'.*(lengths(20)/lengths(19)) + LDIP;
+% 
+% figure
+% hold on;
+% for i = 1:10
+%     pause(1)
 
 %TCMC_flex is the angle between TCMC-IMCP and TCMC-TMCP along the thumb plane (RW-TCMC-IMCP)
 %TMCP_abd is the angle between TCMC-IMCP and TCMC-TMCP out of the thumb plane (along the tabd plane described by the cross product between the thumb pane normal and TCMC-IMCP)
@@ -132,6 +136,7 @@ thumb_plane = (thumb_plane./norm(thumb_plane));
 K = [0 -thumb_plane(3) thumb_plane(2); thumb_plane(3) 0 -thumb_plane(1); -thumb_plane(2) thumb_plane(1) 0];
 R = eye(3) + sin(-unproTable.TCMC_flex(grasp_time))*K + (1-cos(-unproTable.TCMC_flex(grasp_time)))*K*K;
 TMCP = (R*thumb_rot_axis')'.*lengths(2)/norm(thumb_rot_axis);
+
 thumb_abd_axis = cross(thumb_plane,thumb_rot_axis);
 thumb_abd_axis = (thumb_abd_axis./norm(thumb_abd_axis));
 K = [0 -thumb_abd_axis(3) thumb_abd_axis(2); thumb_abd_axis(3) 0 -thumb_abd_axis(1); -thumb_abd_axis(2) thumb_abd_axis(1) 0];
@@ -139,12 +144,15 @@ R = eye(3) + sin(-unproTable.TMCP_abd(grasp_time))*K + (1-cos(-unproTable.TMCP_a
 TMCP = (R*TMCP')';
 
 K = [0 -thumb_rot_axis(3) thumb_rot_axis(2); thumb_rot_axis(3) 0 -thumb_rot_axis(1); -thumb_rot_axis(2) thumb_rot_axis(1) 0];
-R = eye(3) + sin(-unproTable.TCMC_rot(grasp_time))*K + (1-cos(-unproTable.TCMC_rot(grasp_time)))*K*K;
-thumb_plane2 = (R*thumb_abd_axis')'./norm(thumb_abd_axis);
+R = eye(3) + sin(pi/2-unproTable.TCMC_rot(grasp_time))*K + (1-cos(pi/2-unproTable.TCMC_rot(grasp_time)))*K*K;
+thumb_plane2 = (R*thumb_abd_axis')';
+thumb_plane2 = (thumb_plane2./norm(thumb_plane2));
+test = 30*thumb_plane2./norm(thumb_plane2);
+test2 = unproTable.TCMC_rot(grasp_time);
 thumb_plane2_np = TMCP.*((thumb_plane2(:,1).*TMCP(:,1) + thumb_plane2(:,2).*TMCP(:,2) + thumb_plane2(:,3).*TMCP(:,3))./(norm(TMCP).^2));  % Vector component along TCMC-IMCP
 thumb_plane2 = [thumb_plane2(:,1)-thumb_plane2_np(:,1),thumb_plane2(:,2)-thumb_plane2_np(:,2),thumb_plane2(:,3)-thumb_plane2_np(:,3)];  % Vector component orthogonal to TCMC-IMCP
-thumb_plane2 = (thumb_plane2./norm(thumb_plane2));
-TMCP = TMCP + knuckles(1,:)';
+thumb_plane2 = (-thumb_plane2./norm(thumb_plane2));
+TMCP = TMCP + knuckles(1,:);
 
 % vmag = dot(TMCP,thumb_rot_axis)/(norm(thumb_rot_axis)^2);
 % v_inline = vmag*thumb_rot_axis;
@@ -157,9 +165,9 @@ TMCP = TMCP + knuckles(1,:)';
 
 K = [0 -thumb_plane2(3) thumb_plane2(2); thumb_plane2(3) 0 -thumb_plane2(1); -thumb_plane2(2) thumb_plane2(1) 0];
 R = eye(3) + sin(unproTable.TMCP_flex(grasp_time)-pi)*K + (1-cos(unproTable.TMCP_flex(grasp_time)-pi))*K*K;
-TIP = R*(TMCP-knuckles(1,:)').*(lengths(3)/lengths(2)) + TMCP;
+TIP = (R*(TMCP-knuckles(1,:))')'.*(lengths(3)/lengths(2)) + TMCP;
 R = eye(3) + sin(unproTable.TIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.TIP_flex(grasp_time)-pi))*K*K;
-TT = R*(TIP-TMCP).*(lengths(4)/lengths(3)) + TIP;
+TT = (R*(TIP-TMCP)')'.*(lengths(4)/lengths(3)) + TIP;
 
 % Elbow starts in the direction of MMCP to W
 E = -knuckles(3,:).*lengths(23)/lengths(9);
@@ -196,10 +204,35 @@ hold on;
 %     [0,palm_plane(2)*30], ...
 %     [0,palm_plane(3)*30], ...
 %     '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
+
+palmPlot = plot3([knuckles(1,1),thumb_abd_axis(1)*30 + knuckles(1,1)], ...
+    [knuckles(1,2),thumb_abd_axis(2)*30 + knuckles(1,2)], ...
+    [knuckles(1,3),thumb_abd_axis(3)*30 + knuckles(1,3)], ...
+    '-o', 'MarkerSize',3,'MarkerFaceColor',	'm', 'Color','m');
+% palmPlot2 = plot3([knuckles(1,1),thumb_plane(1)*30 + knuckles(1,1)], ...
+%     [knuckles(1,2),thumb_plane(2)*30 + knuckles(1,2)], ...
+%     [knuckles(1,3),thumb_plane(3)*30 + knuckles(1,3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
+palmPlot3 = plot3([knuckles(1,1),thumb_plane2(1)*30 + knuckles(1,1)], ...
+    [knuckles(1,2),thumb_plane2(2)*30 + knuckles(1,2)], ...
+    [knuckles(1,3),thumb_plane2(3)*30 + knuckles(1,3)], ...
+    '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
+palmPlot2 = plot3([knuckles(1,1),test(1) + knuckles(1,1)], ...
+    [knuckles(1,2),test(2) + knuckles(1,2)], ...
+    [knuckles(1,3),test(3) + knuckles(1,3)], ...
+    '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
 ThumbPlot = plot3([0,knuckles(1,1),TMCP(1),TIP(1),TT(1)], ...
     [0,knuckles(1,2),TMCP(2),TIP(2),TT(2)], ...
     [0,knuckles(1,3),TMCP(3),TIP(3),TT(3)], ...
     '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
+% ThumbPlot2 = plot3([0,knuckles(1,1),thumb_rot_axis(1) + knuckles(1,1)], ...
+%     [0,knuckles(1,2),thumb_rot_axis(2) + knuckles(1,2)], ...
+%     [0,knuckles(1,3),thumb_rot_axis(3) + knuckles(1,3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
+% ThumbPlot = plot3([0,knuckles(1,1),TMCP(1)], ...
+%     [0,knuckles(1,2),TMCP(2)], ...
+%     [0,knuckles(1,3),TMCP(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
 IndexPlot = plot3([0,knuckles(2,1),IPIP(1),IDIP(1),IT(1)], ...
     [0,knuckles(2,2),IPIP(2),IDIP(2),IT(2)], ...
     [0,knuckles(2,3),IPIP(3),IDIP(3),IT(3)], ...
@@ -220,9 +253,9 @@ LittlePlot = plot3([0,knuckles(5,1),LPIP(1),LDIP(1),LT(1)], ...
 %     [0,E(2),S(2)], ...
 %     [0,E(3),S(3)], ...
 %     '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color',"#D95319");
-% xlim([-50 50])
-% ylim([0 100])
-% zlim([-50 50])
+xlim([-200 100])
+ylim([-100 200])
+zlim([-200 100])
 xlabel('x (mm)')
 ylabel('y (mm)')
 zlabel('z (mm)')
@@ -243,6 +276,8 @@ for l = 1:24
     temp = transpose(R2*temp');
     alignment_transformed = cat(2,alignment_transformed,temp);
 end
+
+% alignment_transformed = original(grasp_time,:);
 % figure
 % hold on
 ThumbPlot = plot3([alignment_transformed(12),alignment_transformed(9),alignment_transformed(6),alignment_transformed(3),alignment_transformed(72)], ...
@@ -269,7 +304,7 @@ LittlePlot = plot3([alignment_transformed(60),alignment_transformed(57),alignmen
 %      [alignment_transformed(61),alignment_transformed(64),alignment_transformed(67),alignment_transformed(70)], ...
 %      [alignment_transformed(62),alignment_transformed(65),alignment_transformed(68),alignment_transformed(71)], ...
 %      '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color','k');
-% scatter3(mean(alignment_transformed(:,3:3:end),1,"omitnan"),mean(alignment_transformed(:,1:3:end),1,"omitnan"),mean(alignment_transformed(:,2:3:end),1,"omitnan"))
+%scatter3(mean(alignment_transformed(:,3:3:end),1,"omitnan"),mean(alignment_transformed(:,1:3:end),1,"omitnan"),mean(alignment_transformed(:,2:3:end),1,"omitnan"))
 xlabel('x (mm)')
 ylabel('y (mm)')
 zlabel('z (mm)')
@@ -280,3 +315,5 @@ zlabel('z (mm)')
 % set(gca, 'fontsize',14)
 % set(gcf,'position',[200,200,700,600])
 % view([210 40])
+flag = 1;
+% end
