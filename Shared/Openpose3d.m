@@ -50,6 +50,12 @@ set(gcf,'position',[200,200,600,570])
 %view([0 90]) %top right side view
 view([50 30]) %e3v834c view
 
+% Coordinate system: Z is the vertical axis (up down), Y is the horizontal axis (left/right), and X is depth (forwards/backwards)
+% The Z and Y axis are flipped
+% The origin is between the chest and shoulder on the Y axis, just above
+% the elbow on the Z axis, and really far forwards in the X axis (X is more
+% negative forwards)
+
 myVideo = VideoWriter('video.avi');
 myVideo.FrameRate = 30;
 % 1-240, 280-520, 600-800, 880-1080, 1160-end
