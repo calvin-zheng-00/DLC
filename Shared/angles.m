@@ -142,26 +142,27 @@ for participantfolder_i = 1:numel(participantfolder)
             res = v1norm(:,1) .* tmb_unitnorm(:,1) + v1norm(:,2) .* tmb_unitnorm(:,2) + v1norm(:,3) .* tmb_unitnorm(:,3);
             df2.("TMCP_abd") = acos(res) - pi/2;
             % TCMC_rot is the angle between the component of the thumb rotation plane (TCMC-TMCP-TIP) that's orthogonal to TCMC-IMCP, and the thumb plane
-            v4 = [df.TIP_x - df.TMCP_x, df.TIP_y - df.TMCP_y, df.TIP_z - df.TMCP_z];
-            v1n = v1.*-1;
-            trot_norm = cross(v1n,v4,2);  % Normal to the thumb plane
-            trot_np = v2.*((trot_norm(:,1).*v2(:,1) + trot_norm(:,2).*v2(:,2) + trot_norm(:,3).*v2(:,3))./(v2mag.^2));  % Vector component along TCMC-IMCP
-            trot_p = [trot_norm(:,1)-trot_np(:,1),trot_norm(:,2)-trot_np(:,2),trot_norm(:,3)-trot_np(:,3)];  % Vector component orthogonal to TCMC-IMCP
-            trotmag = sqrt(trot_p(:,1).^2 + trot_p(:,2).^2 + trot_p(:,3).^2);
-            trot_norm = trot_p./trotmag;
-            res = trot_norm(:,1) .* tmb_unitnorm(:,1) + trot_norm(:,2) .* tmb_unitnorm(:,2) + trot_norm(:,3) .* tmb_unitnorm(:,3);
-            df2.("TCMC_rot") = acos(res);
-            % TCMC_rot is the angle between the thumb rotation plane (TCMC-TMCP-TIP) and the component of the thumb plane that's orthogonal to TCMC-IMCP
-            % v1mag = sqrt(v1(:,1).^2 + v1(:,2).^2 + v1(:,3).^2);
-            % tmb_unitnorm_np = v1.*((tmb_unitnorm(:,1).*v1(:,1) + tmb_unitnorm(:,2).*v1(:,2) + tmb_unitnorm(:,3).*v1(:,3))./(v1mag.^2));  % thumb plane component along v1
-            % tmb_unitnorm_p = tmb_unitnorm - tmb_unitnorm_np;                               % thumb plane component orthogonal to v1
-            % tmb_unitnorm_p_norm = tmb_unitnorm_p./norm(tmb_unitnorm_p);
             % v4 = [df.TIP_x - df.TMCP_x, df.TIP_y - df.TMCP_y, df.TIP_z - df.TMCP_z];
-            % trot_norm = cross(v1,v4,2);  % Normal to the thumb plane
-            % trotmag = sqrt(trot_norm(:,1).^2 + trot_norm(:,2).^2 + trot_norm(:,3).^2);
-            % trot_norm = trot_norm./trotmag;
-            % res = trot_norm(:,1) .* tmb_unitnorm_p_norm(:,1) + trot_norm(:,2) .* tmb_unitnorm_p_norm(:,2) + trot_norm(:,3) .* tmb_unitnorm_p_norm(:,3);
+            % v1n = v1.*-1;
+            % trot_norm = cross(v1n,v4,2);  % Normal to the thumb plane
+            % trot_np = v2.*((trot_norm(:,1).*v2(:,1) + trot_norm(:,2).*v2(:,2) + trot_norm(:,3).*v2(:,3))./(v2mag.^2));  % Vector component along TCMC-IMCP
+            % trot_p = [trot_norm(:,1)-trot_np(:,1),trot_norm(:,2)-trot_np(:,2),trot_norm(:,3)-trot_np(:,3)];  % Vector component orthogonal to TCMC-IMCP
+            % trotmag = sqrt(trot_p(:,1).^2 + trot_p(:,2).^2 + trot_p(:,3).^2);
+            % trot_norm = trot_p./trotmag;
+            % res = trot_norm(:,1) .* tmb_unitnorm(:,1) + trot_norm(:,2) .* tmb_unitnorm(:,2) + trot_norm(:,3) .* tmb_unitnorm(:,3);
             % df2.("TCMC_rot") = acos(res);
+            % TCMC_rot is the angle between the thumb rotation plane (TCMC-TMCP-TIP) and the component of the thumb plane that's orthogonal to TCMC-IMCP
+            v1mag = sqrt(v1(:,1).^2 + v1(:,2).^2 + v1(:,3).^2);
+            tmb_unitnorm_np = v1.*((tmb_unitnorm(:,1).*v1(:,1) + tmb_unitnorm(:,2).*v1(:,2) + tmb_unitnorm(:,3).*v1(:,3))./(v1mag.^2));  % thumb plane component along v1
+            tmb_unitnorm_p = tmb_unitnorm - tmb_unitnorm_np;                               % thumb plane component orthogonal to v1
+            tmb_unitnorm_p_mag = sqrt(tmb_unitnorm_p(:,1).^2 + tmb_unitnorm_p(:,2).^2 + tmb_unitnorm_p(:,3).^2);
+            tmb_unitnorm_p_norm = tmb_unitnorm_p./tmb_unitnorm_p_mag;
+            v4 = [df.TIP_x - df.TMCP_x, df.TIP_y - df.TMCP_y, df.TIP_z - df.TMCP_z];
+            trot_norm = cross(v1,v4,2);  % Normal to the thumb plane
+            trotmag = sqrt(trot_norm(:,1).^2 + trot_norm(:,2).^2 + trot_norm(:,3).^2);
+            trot_norm = trot_norm./trotmag;
+            res = trot_norm(:,1) .* tmb_unitnorm_p_norm(:,1) + trot_norm(:,2) .* tmb_unitnorm_p_norm(:,2) + trot_norm(:,3) .* tmb_unitnorm_p_norm(:,3);
+            df2.("TCMC_rot") = acos(res);
         
             %% Wrist
             % Find wrist flex vs abduction
