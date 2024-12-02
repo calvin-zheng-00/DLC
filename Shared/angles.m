@@ -151,7 +151,7 @@ for participantfolder_i = 1:numel(participantfolder)
             % trot_norm = trot_p./trotmag;
             % res = trot_norm(:,1) .* tmb_unitnorm(:,1) + trot_norm(:,2) .* tmb_unitnorm(:,2) + trot_norm(:,3) .* tmb_unitnorm(:,3);
             % df2.("TCMC_rot") = acos(res);
-            % TCMC_rot is the angle between the thumb rotation plane (TCMC-TMCP-TIP) and the component of the thumb plane that's orthogonal to TCMC-IMCP
+            % TCMC_rot is the angle between the thumb rotation plane (TCMC-TMCP-TIP) and the component of the thumb plane that's orthogonal to TCMC-TMCP
             v1mag = sqrt(v1(:,1).^2 + v1(:,2).^2 + v1(:,3).^2);
             tmb_unitnorm_np = v1.*((tmb_unitnorm(:,1).*v1(:,1) + tmb_unitnorm(:,2).*v1(:,2) + tmb_unitnorm(:,3).*v1(:,3))./(v1mag.^2));  % thumb plane component along v1
             tmb_unitnorm_p = tmb_unitnorm - tmb_unitnorm_np;                               % thumb plane component orthogonal to v1
