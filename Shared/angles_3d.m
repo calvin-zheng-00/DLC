@@ -33,7 +33,7 @@ for k = 0:22
 end
 
 %% Adjusting angles
-palm_plane = cross(knuckles(2,:),knuckles(5,:));
+palm_plane = -cross(knuckles(2,:),knuckles(5,:));
 z_axis = [0 0 1];
 % Determine the angle between the vector and the z-axis
 theta = acos(dot(palm_plane, z_axis)/(norm(palm_plane)*norm(z_axis)));
@@ -41,12 +41,24 @@ theta = acos(dot(palm_plane, z_axis)/(norm(palm_plane)*norm(z_axis)));
 axis = cross(palm_plane, z_axis)/norm(cross(palm_plane, z_axis));
 % Construct the rotation matrix using Rodrigues' formula
 K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
-original_R = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+R1 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
 % We are rotating the palm_plane by angle theta around vector K
-palm_plane = (-original_R*palm_plane')'.*[1,-1,-1];
+knuckles_t = transpose(R1*knuckles');
+
+y_axis = [0 1 0];
+% Determine the angle between the vector and the z-axis
+theta = acos(dot(knuckles_t(2,:), y_axis)/(norm(knuckles_t(2,:))*norm(y_axis)));
+% Determine the axis of rotation
+axis = cross(knuckles_t(2,:), y_axis)/norm(cross(knuckles_t(2,:), y_axis));
+% Construct the rotation matrix using Rodrigues' formula
+K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+
+original_R = R2*R1;
+% We are rotating the palm_plane by angle theta around vector K
+palm_plane = (original_R*palm_plane')';
 palm_plane = palm_plane./norm(palm_plane);
-knuckles = transpose(-original_R*knuckles');
-knuckles = knuckles.*[1,-1,1];
+knuckles = transpose(original_R*knuckles');
 
 %% Old knuckle code
 % K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane(2) palm_plane(1) 0];
@@ -182,9 +194,7 @@ K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane
 R = eye(3) + sin(unproTable.W_abd(grasp_time))*K + (1-cos(unproTable.W_abd(grasp_time)))*K*K;
 E = transpose(R*E);
 
-% Edit the below palm back to knuckles(5,:) once I change the
-% python code
-palm_plane2 = cross(knuckles(2,:),knuckles(4,:));
+palm_plane2 = cross(knuckles(2,:),knuckles(5,:));
 palm_plane2 = -palm_plane2/norm(palm_plane2);
 
 mid_norm = knuckles(3,:)/norm(knuckles(3,:));
@@ -246,47 +256,11 @@ flag = 1;
 
 %% Drawing original
 alignment_transformed = [];
-x_axis = [1 0 0];
-K = [0 -x_axis(3) x_axis(2); x_axis(3) 0 -x_axis(1); -x_axis(2) x_axis(1) 0];
-R1 = eye(3) + sin(-pi/2)*K + (1-cos(-pi/2))*K*K;
-y_axis = [0 1 0];
-K = [0 -y_axis(3) y_axis(2); y_axis(3) 0 -y_axis(1); -y_axis(2) y_axis(1) 0];
-R2 = eye(3) + sin(-pi/2)*K + (1-cos(-pi/2))*K*K;
 for l = 1:24
-    temp = transpose(-original_R*alignment(:,(l*3-2):l*3)').*[1,-1,1];
-    % temp = transpose(R1*temp');
-    % temp = transpose(R2*temp');
+    temp = transpose(original_R*alignment(:,(l*3-2):l*3)');%.*[1,-1,1];
     alignment_transformed = cat(2,alignment_transformed,temp);
 end
 
-% alignment_transformed = original(grasp_time,:);
-% figure
-% hold on
-% ThumbPlot = plot3([alignment_transformed(12),alignment_transformed(9),alignment_transformed(6),alignment_transformed(3),alignment_transformed(72)], ...
-%     [alignment_transformed(10),alignment_transformed(7),alignment_transformed(4),alignment_transformed(1),alignment_transformed(70)], ...
-%     [alignment_transformed(11),alignment_transformed(8),alignment_transformed(5),alignment_transformed(2),alignment_transformed(71)], ...
-%     '-o', 'MarkerSize',3,'MarkerFaceColor','r', 'Color','k');
-% IndexPlot = plot3([alignment_transformed(24),alignment_transformed(21),alignment_transformed(18),alignment_transformed(15),alignment_transformed(72)], ...
-%     [alignment_transformed(22),alignment_transformed(19),alignment_transformed(16),alignment_transformed(13),alignment_transformed(70)], ...
-%     [alignment_transformed(23),alignment_transformed(20),alignment_transformed(17),alignment_transformed(14),alignment_transformed(71)], ...
-%     '-o', 'MarkerSize',3,'MarkerFaceColor','m', 'Color','k');
-% MiddlePlot = plot3([alignment_transformed(36),alignment_transformed(33),alignment_transformed(30),alignment_transformed(27),alignment_transformed(72)], ...
-%     [alignment_transformed(34),alignment_transformed(31),alignment_transformed(28),alignment_transformed(25),alignment_transformed(70)], ...
-%     [alignment_transformed(35),alignment_transformed(32),alignment_transformed(29),alignment_transformed(26),alignment_transformed(71)], ...
-%     '-o', 'MarkerSize',3,'MarkerFaceColor','b', 'Color','k');
-% RingPlot = plot3([alignment_transformed(48),alignment_transformed(45),alignment_transformed(42),alignment_transformed(39),alignment_transformed(72)], ...
-%     [alignment_transformed(46),alignment_transformed(43),alignment_transformed(40),alignment_transformed(37),alignment_transformed(70)], ...
-%     [alignment_transformed(47),alignment_transformed(44),alignment_transformed(41),alignment_transformed(38),alignment_transformed(71)], ...
-%     '-o', 'MarkerSize',3,'MarkerFaceColor','c', 'Color','k');
-% LittlePlot = plot3([alignment_transformed(60),alignment_transformed(57),alignment_transformed(54),alignment_transformed(51),alignment_transformed(72)], ...
-%     [alignment_transformed(58),alignment_transformed(55),alignment_transformed(52),alignment_transformed(49),alignment_transformed(70)], ...
-%     [alignment_transformed(59),alignment_transformed(56),alignment_transformed(53),alignment_transformed(50),alignment_transformed(71)], ...
-%     '-o', 'MarkerSize',3,'MarkerFaceColor','g', 'Color','k');
-% RightArmPlot = plot3([alignment_transformed(63),alignment_transformed(66),alignment_transformed(69),alignment_transformed(72)], ...
-%      [alignment_transformed(61),alignment_transformed(64),alignment_transformed(67),alignment_transformed(70)], ...
-%      [alignment_transformed(62),alignment_transformed(65),alignment_transformed(68),alignment_transformed(71)], ...
-%      '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color','k');
-%scatter3(mean(alignment_transformed(:,3:3:end),1,"omitnan"),mean(alignment_transformed(:,1:3:end),1,"omitnan"),mean(alignment_transformed(:,2:3:end),1,"omitnan"))
 ThumbPlot = plot3([alignment_transformed(10),alignment_transformed(7),alignment_transformed(4),alignment_transformed(1),alignment_transformed(70)], ...
     [alignment_transformed(11),alignment_transformed(8),alignment_transformed(5),alignment_transformed(2),alignment_transformed(71)], ...
     [alignment_transformed(12),alignment_transformed(9),alignment_transformed(6),alignment_transformed(3),alignment_transformed(72)], ...
@@ -326,49 +300,142 @@ flag = 1;
 test = sqrt((alignment_transformed(10)-TT(1)).^2 + (alignment_transformed(11)-TT(2)).^2 + (alignment_transformed(12)-TT(3)).^2)
 
 %% Testing
-thumb_rot_axis = knuckles(2,:) - knuckles(1,:);
-thumb_plane = cross(knuckles(1,:),knuckles(2,:));
-thumb_plane = (thumb_plane./norm(thumb_plane));
-K = [0 -thumb_plane(3) thumb_plane(2); thumb_plane(3) 0 -thumb_plane(1); -thumb_plane(2) thumb_plane(1) 0];
-R = eye(3) + sin(-unproTable.TCMC_flex(grasp_time))*K + (1-cos(-unproTable.TCMC_flex(grasp_time)))*K*K;
-TMCP_flex = (R*thumb_rot_axis')'.*lengths(2)/norm(thumb_rot_axis);
+%TCMC_flex is the angle between TCMC-IMCP and TCMC-TMCP along the thumb plane (RW-TCMC-IMCP)
+%TMCP_abd is the angle between TCMC-IMCP and TCMC-TMCP out of the thumb plane (along the tabd plane described by the cross product between the thumb pane normal and TCMC-IMCP)
+%TCMC_rot is the angle between the component of the thumb rotation plane (TCMC-TMCP-TIP) that's orthogonal to TCMC-IMCP, and the tabd plane
+v1 = [original_table.TMCP_x(grasp_time) - original_table.TCMC_x(grasp_time), original_table.TMCP_y(grasp_time) - original_table.TCMC_y(grasp_time), original_table.TMCP_z(grasp_time) - original_table.TCMC_z(grasp_time)];
+v2 = [original_table.IMCP_x(grasp_time) - original_table.TCMC_x(grasp_time), original_table.IMCP_y(grasp_time) - original_table.TCMC_y(grasp_time), original_table.IMCP_z(grasp_time) - original_table.TCMC_z(grasp_time)];
+v3 = [original_table.RW_x(grasp_time) - original_table.TCMC_x(grasp_time), original_table.RW_y(grasp_time) - original_table.TCMC_y(grasp_time), original_table.RW_z(grasp_time) - original_table.TCMC_z(grasp_time)];
 
+v2mag = sqrt(v2(:,1).^2 + v2(:,2).^2 + v2(:,3).^2);
+tmb_norm = cross(v2,v3,2);  % Normal to the thumb plane
+tmb_normmag = sqrt(tmb_norm(:,1).^2 + tmb_norm(:,2).^2 + tmb_norm(:,3).^2);
+tmb_unitnorm = tmb_norm./tmb_normmag;
+tabd_norm = cross(v2,tmb_norm,2);  % Orthogonal to the thumb plane and index vector
+tabd_normmag = sqrt(tabd_norm(:,1).^2 + tabd_norm(:,2).^2 + tabd_norm(:,3).^2);
+
+z = dot(v1,tmb_norm)/tmb_normmag; % magnitude of the component of v1 along the thumb normal
+x = dot(v1,v2)/v2mag; % magnitude of the component of v1 along the index vector
+y = dot(v1,tabd_norm)/tabd_normmag; % magnitude of the component of v1 along the index vector
+angle_flex = atan(y/x);
+angle_abd = acos(z/sqrt(x^2 + y^2 + z^2));
+
+test1 = unproTable.TCMC_flex(grasp_time);
+test2 = unproTable.TMCP_abd(grasp_time);
+
+% Reprojection
+thumb_rot_axis = knuckles(2,:) - knuckles(1,:);
+thumb_rot_axis = thumb_rot_axis./norm(thumb_rot_axis);
+thumb_plane = cross(knuckles(1,:),knuckles(2,:));
+thumb_plane = thumb_plane./norm(thumb_plane);
 thumb_abd_axis = cross(thumb_plane,thumb_rot_axis);
 thumb_abd_axis = (thumb_abd_axis./norm(thumb_abd_axis));
-K = [0 -thumb_abd_axis(3) thumb_abd_axis(2); thumb_abd_axis(3) 0 -thumb_abd_axis(1); -thumb_abd_axis(2) thumb_abd_axis(1) 0];
-R = eye(3) + sin(unproTable.TMCP_abd(grasp_time))*K + (1-cos(unproTable.TMCP_abd(grasp_time)))*K*K;
-TMCP_test = (R*TMCP_flex')';
-TMCP_test = TMCP_test + knuckles(1,:);
-TMCP_abd = (R*thumb_rot_axis')'; % remove later
 
-%% Add the two parts together instead
-TMCP_add = TMCP_flex + TMCP_abd;
-TMCP_add = TMCP_add.*lengths(2)/norm(TMCP_add);
+x_axis = [1 0 0];
+y_axis = [0 1 0];
+% Determine the angle between the vector and the z-axis
+theta = acos(dot(x_axis, thumb_rot_axis)/(norm(x_axis)*norm(thumb_rot_axis)));
+% Determine the axis of rotation
+axis = cross(x_axis, thumb_rot_axis)/norm(cross(x_axis, thumb_rot_axis));
+% Construct the rotation matrix using Rodrigues' formula
+K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+R1 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+% We are rotating the palm_plane by angle theta around vector K
+new_y_axis = (R1*y_axis')';
 
+% Determine the angle between the vector and the z-axis
+theta = acos(dot(new_y_axis, thumb_abd_axis)/(norm(new_y_axis)*norm(thumb_abd_axis)));
+% Determine the axis of rotation
+axis = cross(new_y_axis, thumb_abd_axis)/norm(cross(new_y_axis, thumb_abd_axis));
+%axis = thumb_rot_axis;
+% Construct the rotation matrix using Rodrigues' formula
+K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+% We are rotating the palm_plane by angle theta around vector K
+R = R2*R1;
+
+ThumbPlotaxis = plot3([knuckles(1,1),thumb_rot_axis(1)*30+knuckles(1,1)], ...
+    [knuckles(1,2),thumb_rot_axis(2)*30+knuckles(1,2)], ...
+    [knuckles(1,3),thumb_rot_axis(3)*30+knuckles(1,3)], ...
+    '-o', 'MarkerSize',3,'MarkerFaceColor',	'g', 'Color','g');
+
+ThumbPlotaxis2 = plot3([knuckles(1,1),thumb_plane(1)*30+knuckles(1,1)], ...
+    [knuckles(1,2),thumb_plane(2)*30+knuckles(1,2)], ...
+    [knuckles(1,3),thumb_plane(3)*30+knuckles(1,3)], ...
+    '-o', 'MarkerSize',3,'MarkerFaceColor',	'g', 'Color','g');
+
+ThumbPlotaxis3 = plot3([knuckles(1,1),thumb_abd_axis(1)*30+knuckles(1,1)], ...
+    [knuckles(1,2),thumb_abd_axis(2)*30+knuckles(1,2)], ...
+    [knuckles(1,3),thumb_abd_axis(3)*30+knuckles(1,3)], ...
+    '-o', 'MarkerSize',3,'MarkerFaceColor',	'g', 'Color', 'g');
+
+for i = 1:24
+    % [x,y,z] = sph2cart(angle_flex,angle_abd,lengths(2));
+    % [x,y,z] = sph2cart(i*pi/12-pi,-angle_abd+pi/2,lengths(2));
+    [x,y,z] = sph2cart(-angle_flex,-angle_abd+pi/2,lengths(2));
+    TMCP = [x,y,z];
+    TMCP = (R*TMCP')';
+    
+    ThumbPlot0 = plot3([knuckles(1,1),TMCP(1)+knuckles(1,1)], ...
+        [knuckles(1,2),TMCP(2)+knuckles(1,2)], ...
+        [knuckles(1,3),TMCP(3)+knuckles(1,3)], ...
+        '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
+    %pause(1)
+end
+
+% K = [0 -thumb_plane(3) thumb_plane(2); thumb_plane(3) 0 -thumb_plane(1); -thumb_plane(2) thumb_plane(1) 0];
+% for i = 1:24
+%     R = eye(3) + sin(i*pi/12-pi)*K + (1-cos(i*pi/12-pi))*K*K;
+%     TMCP_flex = (R*thumb_rot_axis')'.*lengths(2) + knuckles(1,:);
+% 
+%     ThumbPlot2 = plot3([knuckles(1,1),TMCP_flex(1)], ...
+%     [knuckles(1,2),TMCP_flex(2)], ...
+%     [knuckles(1,3),TMCP_flex(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
+% end
+
+% R = eye(3) + sin(-angle_flex)*K + (1-cos(-angle_flex))*K*K;
+% TMCP_flex_true = (R*thumb_rot_axis')';
+% K = [0 -thumb_abd_axis(3) thumb_abd_axis(2); thumb_abd_axis(3) 0 -thumb_abd_axis(1); -thumb_abd_axis(2) thumb_abd_axis(1) 0];
+% for i = 1:24
+%     R = eye(3) + sin(i*pi/12-pi)*K + (1-cos(i*pi/12-pi))*K*K;
+%     TMCP_test = (R*TMCP_flex_true')'.*lengths(2) + knuckles(1,:);
+% 
+%     ThumbPlot2 = plot3([knuckles(1,1),TMCP_test(1)], ...
+%     [knuckles(1,2),TMCP_test(2)], ...
+%     [knuckles(1,3),TMCP_test(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
+% 
+%     %pause(1)
+% end
 
 % Just abduction
+% ThumbPlot3 = plot3([knuckles(1,1),TMCP_test(1)], ...
+%     [knuckles(1,2),TMCP_test(2)], ...
+%     [knuckles(1,3),TMCP_test(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
+
+% ThumbPlot2 = plot3([knuckles(1,1),TMCP_test2(1)], ...
+%     [knuckles(1,2),TMCP_test2(2)], ...
+%     [knuckles(1,3),TMCP_test2(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
+
+% ThumbPlot4 = plot3([knuckles(1,1),TMCP_test3(1)], ...
+%     [knuckles(1,2),TMCP_test3(2)], ...
+%     [knuckles(1,3),TMCP_test3(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
+% ThumbPlot4 = plot3([knuckles(1,1),test_plane(1)], ...
+%     [knuckles(1,2),test_plane(2)], ...
+%     [knuckles(1,3),test_plane(3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
 % ThumbPlot0 = plot3([knuckles(1,1),TMCP_abd(1)+knuckles(1,1)], ...
 %     [knuckles(1,2),TMCP_abd(2)+knuckles(1,2)], ...
 %     [knuckles(1,3),TMCP_abd(3)+knuckles(1,3)], ...
-%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'g', 'Color','g');
-
-ThumbPlot1 = plot3([knuckles(1,1),TMCP_flex(1)+knuckles(1,1)], ...
-    [knuckles(1,2),TMCP_flex(2)+knuckles(1,2)], ...
-    [knuckles(1,3),TMCP_flex(3)+knuckles(1,3)], ...
-    '-o', 'MarkerSize',3,'MarkerFaceColor',	'c', 'Color','c');
-
-ThumbPlot2 = plot3([knuckles(1,1),TMCP_test(1)], ...
-    [knuckles(1,2),TMCP_test(2)], ...
-    [knuckles(1,3),TMCP_test(3)], ...
-    '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
-
-% ThumbPlot3 = plot3([knuckles(1,1),TMCP_add(1)+knuckles(1,1)], ...
-%     [knuckles(1,2),TMCP_add(2)+knuckles(1,2)], ...
-%     [knuckles(1,3),TMCP_add(3)+knuckles(1,3)], ...
 %     '-o', 'MarkerSize',3,'MarkerFaceColor',	'm', 'Color','m');
+% 
+% ThumbPlot1 = plot3([knuckles(1,1),TMCP_flex(1)+knuckles(1,1)], ...
+%     [knuckles(1,2),TMCP_flex(2)+knuckles(1,2)], ...
+%     [knuckles(1,3),TMCP_flex(3)+knuckles(1,3)], ...
+%     '-o', 'MarkerSize',3,'MarkerFaceColor',	'c', 'Color','c');
 
-ThumbPlot5 = plot3([knuckles(1,1),thumb_abd_axis(1)*30+knuckles(1,1)], ...
-    [knuckles(1,2),thumb_abd_axis(2)*30+knuckles(1,2)], ...
-    [knuckles(1,3),thumb_abd_axis(3)*30+knuckles(1,3)], ...
-    '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
 %% End of testing
