@@ -189,11 +189,11 @@ axis = cross(new_z_axis, palm_plane)/norm(cross(new_z_axis, palm_plane));
 % Construct the rotation matrix using Rodrigues' formula
 K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
 R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
-R_E = R2*R1;
-[x,y,z] = sph2cart(unproTable.W_abd(grasp_time),-unproTable.W_flex(grasp_time)+pi/2,lengths(j));
+R_Elbow = R2*R1;
+[x,y,z] = sph2cart(unproTable.W_abd(grasp_time),-unproTable.W_flex(grasp_time)+pi/2,lengths(23));
 E = [x,y,z];
-E = (R_E*E')';
-E = E*lengths(23)/norm(E);
+E = (R_Elbow*E')';
+%E = E*lengths(23)/norm(E);
 
 forearm_np = E.*((palm_plane(:,1).*E(:,1) + palm_plane(:,2).*E(:,2) + palm_plane(:,3).*E(:,3))./(lengths(23).^2));   % Vector component normal to the palm plane
 forearm_p = [palm_plane(:,1)-forearm_np(:,1),palm_plane(:,2)-forearm_np(:,2),palm_plane(:,3)-forearm_np(:,3)];                                       % Vector component on the palm plane
@@ -208,29 +208,41 @@ K = [0 -E_axis(3) E_axis(2); E_axis(3) 0 -E_axis(1); -E_axis(2) E_axis(1) 0];
 R = eye(3) + sin(unproTable.RE_flex(grasp_time)-pi)*K + (1-cos(unproTable.RE_flex(grasp_time)-pi))*K*K;
 S = (R*E')'.*lengths(22)./lengths(23) + E;
 
-% E = -knuckles(3,:).*lengths(23)/lengths(9);
-% vmag = dot(E,palm_plane)/(norm(palm_plane)^2);
-% v_inline = vmag*palm_plane;
-% v_perp = E - v_inline;
-% wrist_plane = cross(palm_plane,v_perp);
-% wrist_plane = wrist_plane/norm(wrist_plane);
-% K = [0 -wrist_plane(3) wrist_plane(2); wrist_plane(3) 0 -wrist_plane(1); -wrist_plane(2) wrist_plane(1) 0];
-% R = eye(3) + sin(unproTable.W_flex(grasp_time)-pi)*K + (1-cos(unproTable.W_flex(grasp_time)-pi))*K*K;
-% E = R*E';
-% K = [0 -palm_plane(3) palm_plane(2); palm_plane(3) 0 -palm_plane(1); -palm_plane(2) palm_plane(1) 0];
-% R = eye(3) + sin(unproTable.W_abd(grasp_time))*K + (1-cos(unproTable.W_abd(grasp_time)))*K*K;
-% E = transpose(R*E);
+s_third_axis = cross(E_axis,(S-E),2);
+x_axis = [1 0 0];
+z_axis = [0 0 1];
+% Determine the angle between the vector and the z-axis
+theta = acos(dot(x_axis, S-E)/(norm(x_axis)*norm(S-E)));
+% Determine the axis of rotation
+axis = cross(x_axis, S-E)/norm(cross(x_axis, S-E));
+% Construct the rotation matrix using Rodrigues' formula
+K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+R1 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+% We are rotating the palm_plane by angle theta around vector K
+new_z_axis = (R1*z_axis')';
 
-% palm_plane2 = cross(knuckles(2,:),knuckles(5,:));
-% palm_plane2 = -palm_plane2/norm(palm_plane2);
-% 
-% mid_norm = knuckles(3,:)/norm(knuckles(3,:));
-% K = [0 -mid_norm(3) mid_norm(2); mid_norm(3) 0 -mid_norm(1); -mid_norm(2) mid_norm(1) 0];
-% R = eye(3) + sin(-unproTable.W_rot(grasp_time))*K + (1-cos(-unproTable.W_rot(grasp_time)))*K*K;
-% arm_plane = R*palm_plane';
-% K = [0 -arm_plane(3) arm_plane(2); arm_plane(3) 0 -arm_plane(1); -arm_plane(2) arm_plane(1) 0];
-% R = eye(3) + sin(pi-unproTable.RE_flex(grasp_time))*K + (1-cos(pi-unproTable.RE_flex(grasp_time)))*K*K;
-% S = transpose(R*E'.*lengths(22)/lengths(23)) + E;
+% Determine the angle between the vector and the z-axis
+theta = acos(dot(new_z_axis, E_axis)/(norm(new_z_axis)*norm(E_axis)));
+% Determine the axis of rotation
+axis = cross(new_z_axis, E_axis)/norm(cross(new_z_axis, E_axis));
+% Construct the rotation matrix using Rodrigues' formula
+K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+% We are rotating the palm_plane by angle theta around vector K
+R_Shoulder = R2*R1;
+
+[x,y,z] = sph2cart(unproTable.RS_flex(grasp_time),unproTable.RS_abd(grasp_time)-pi/2,lengths(21));
+C = [x,y,z];
+C = (R_Shoulder*C')' + S;
+
+chest_axis = C-S;
+chest_axis = chest_axis/norm(chest_axis);
+shoulder_norm = cross(chest_axis,S-E,2);
+shoulder_normmag = sqrt(shoulder_norm(:,1).^2 + shoulder_norm(:,2).^2 + shoulder_norm(:,3).^2);
+unit_shoulder_norm = shoulder_norm./shoulder_normmag;
+K = [0 -chest_axis(3) chest_axis(2); chest_axis(3) 0 -chest_axis(1); -chest_axis(2) chest_axis(1) 0];
+R = eye(3) + sin(unproTable.RS_rot(grasp_time))*K + (1-cos(unproTable.RS_rot(grasp_time)))*K*K;
+N = (R*unit_shoulder_norm')'*-100+C;
 
 %% Drawing reprojection
 figure
@@ -256,10 +268,14 @@ LittlePlot = plot3([0,knuckles(5,1),PIP(4,1),DIP(4,1),Tip(4,1)], ...
     [0,knuckles(5,2),PIP(4,2),DIP(4,2),Tip(4,2)], ...
     [0,knuckles(5,3),PIP(4,3),DIP(4,3),Tip(4,3)], ...
     '-o', 'MarkerSize',3,'MarkerFaceColor',	'g', 'Color','g');
-RightArmPlot = plot3([0,E(1),S(1)], ...
-    [0,E(2),S(2)], ...
-    [0,E(3),S(3)], ...
+RightArmPlot = plot3([0,E(1),S(1),C(1)], ...
+    [0,E(2),S(2),C(2)], ...
+    [0,E(3),S(3),C(3)], ...
     '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color',"#D95319");
+ReferencePlot = plot3([C(1),N(1)], ...
+     [C(2),N(2)], ...
+     [C(3),N(3)], ...
+     '-o', 'MarkerSize',3,'MarkerFaceColor',"#7E2F8E", 'Color',"#7E2F8E");
 
 % xlim([-200 100])
 % ylim([-100 200])
@@ -276,6 +292,9 @@ for l = 1:24
     temp = transpose(original_R*alignment(:,(l*3-2):l*3)');%.*[1,-1,1];
     alignment_transformed = cat(2,alignment_transformed,temp);
 end
+Nose = [T.N_x(grasp_time),T.N_y(grasp_time),T.N_z(grasp_time)];
+Nose = Nose - original(grasp_time,70:72);
+Nose = (original_R*Nose')';
 
 ThumbPlot = plot3([alignment_transformed(10),alignment_transformed(7),alignment_transformed(4),alignment_transformed(1),alignment_transformed(70)], ...
     [alignment_transformed(11),alignment_transformed(8),alignment_transformed(5),alignment_transformed(2),alignment_transformed(71)], ...
@@ -297,10 +316,14 @@ LittlePlot = plot3([alignment_transformed(58),alignment_transformed(55),alignmen
     [alignment_transformed(59),alignment_transformed(56),alignment_transformed(53),alignment_transformed(50),alignment_transformed(71)], ...
     [alignment_transformed(60),alignment_transformed(57),alignment_transformed(54),alignment_transformed(51),alignment_transformed(72)], ...
     '-o', 'MarkerSize',3,'MarkerFaceColor','g', 'Color','k');
-RightArmPlot = plot3([alignment_transformed(61),alignment_transformed(64),alignment_transformed(67),alignment_transformed(70)], ...
-     [alignment_transformed(62),alignment_transformed(65),alignment_transformed(68),alignment_transformed(71)], ...
-     [alignment_transformed(63),alignment_transformed(66),alignment_transformed(69),alignment_transformed(72)], ...
+RightArmPlot = plot3([Nose(1),alignment_transformed(61),alignment_transformed(64),alignment_transformed(67),alignment_transformed(70)], ...
+     [Nose(2),alignment_transformed(62),alignment_transformed(65),alignment_transformed(68),alignment_transformed(71)], ...
+     [Nose(3),alignment_transformed(63),alignment_transformed(66),alignment_transformed(69),alignment_transformed(72)], ...
      '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color','k');
+ReferencePlot = plot3([Nose(1),alignment_transformed(61)], ...
+     [Nose(2),alignment_transformed(62)], ...
+     [Nose(3),alignment_transformed(63)], ...
+     '-o', 'MarkerSize',3,'MarkerFaceColor',"#7E2F8E", 'Color','k');
 xlabel('x (mm)')
 ylabel('y (mm)')
 zlabel('z (mm)')

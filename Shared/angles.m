@@ -281,14 +281,28 @@ for participantfolder_i = 1:numel(participantfolder)
             % v1norm = v1_p./v1mag;
             % res = v1norm(:,1) .* unit_chest_norm(:,1) + v1norm(:,2) .* unit_chest_norm(:,2) + v1norm(:,3) .* unit_chest_norm(:,3);
             % df2.("RS_flex") = acos(res);
+
             % Shoulder rotation comparing arm plane (RW,RE,RS) to shoulder plane (C-RS-RE)
             % Finding shoulder plane (C-RS-RE)
+            % v1 = [df.C_x - df.RS_x, df.C_y - df.RS_y, df.C_z - df.RS_z];
+            % v2 = [df.RE_x - df.RS_x, df.RE_y - df.RS_y, df.RE_z - df.RS_z];
+            % shoulder_norm = cross(v1,v2,2);
+            % shoulder_normmag = sqrt(shoulder_norm(:,1).^2 + shoulder_norm(:,2).^2 + shoulder_norm(:,3).^2);
+            % unit_shoulder_norm = shoulder_norm./shoulder_normmag;
+            % res = unit_shoulder_norm(:,1) .* unit_arm_norm(:,1) + unit_shoulder_norm(:,2) .* unit_arm_norm(:,2) + unit_shoulder_norm(:,3) .* unit_arm_norm(:,3);
+            % df2.("RS_rot") = acos(res);
             v1 = [df.C_x - df.RS_x, df.C_y - df.RS_y, df.C_z - df.RS_z];
             v2 = [df.RE_x - df.RS_x, df.RE_y - df.RS_y, df.RE_z - df.RS_z];
+            v3 = [df.N_x - df.C_x, df.N_y - df.C_y, df.N_z - df.C_z];
             shoulder_norm = cross(v1,v2,2);
             shoulder_normmag = sqrt(shoulder_norm(:,1).^2 + shoulder_norm(:,2).^2 + shoulder_norm(:,3).^2);
             unit_shoulder_norm = shoulder_norm./shoulder_normmag;
-            res = unit_shoulder_norm(:,1) .* unit_arm_norm(:,1) + unit_shoulder_norm(:,2) .* unit_arm_norm(:,2) + unit_shoulder_norm(:,3) .* unit_arm_norm(:,3);
+            v1mag = sqrt(v1(:,1).^2 + v1(:,2).^2 + v1(:,3).^2);
+            v3_np = v1.*((v3(:,1).*v1(:,1) + v3(:,2).*v1(:,2) + v3(:,3).*v1(:,3))./(v1mag.^2));   % Vector component normal to the palm plane
+            v3_p = [v3(:,1)-v3_np(:,1),v3(:,2)-v3_np(:,2),v3(:,3)-v3_np(:,3)];                                       % Vector component on the palm plane
+            v3mag = sqrt(v3_p(:,1).^2 + v3_p(:,2).^2 + v3_p(:,3).^2);
+            v3unit = v3_p./v3mag;
+            res = unit_shoulder_norm(:,1) .* v3unit(:,1) + unit_shoulder_norm(:,2) .* v3unit(:,2) + unit_shoulder_norm(:,3) .* v3unit(:,3);
             df2.("RS_rot") = acos(res);
     
             df2 = [df2(:,2:16) df2(:,21:22) df2(:,17:20) df2(:,23:25) df2(:,1) df2(:,26:28)];
