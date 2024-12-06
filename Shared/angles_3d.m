@@ -105,9 +105,9 @@ for i = 2:5
     finger_axis = (R*finger_axis')';
     PIP = [PIP;PIP_temp + knuckles(i,:)];
     K = [0 -finger_axis(3) finger_axis(2); finger_axis(3) 0 -finger_axis(1); -finger_axis(2) finger_axis(1) 0];
-    R = eye(3) + sin(unproTable(grasp_time,(i-1)*3+2).(1)-pi)*K + (1-cos(unproTable(grasp_time,(i-1)*3+2).(1)-pi))*K*K;
+    R = eye(3) + sin(unproTable(grasp_time,(i-1)*3+2).(1))*K + (1-cos(unproTable(grasp_time,(i-1)*3+2).(1)))*K*K;
     DIP = [DIP;(R*(PIP(i-1,:)-knuckles(i,:))')'.*(lengths(j+1)/lengths(j)) + PIP(i-1,:)];
-    R = eye(3) + sin(unproTable(grasp_time,(i-1)*3+3).(1)-pi)*K + (1-cos(unproTable(grasp_time,(i-1)*3+3).(1)-pi))*K*K;
+    R = eye(3) + sin(unproTable(grasp_time,(i-1)*3+3).(1))*K + (1-cos(unproTable(grasp_time,(i-1)*3+3).(1)))*K*K;
     Tip = [Tip;(R*(DIP(i-1,:)-PIP(i-1,:))')'.*(lengths(j+2)/lengths(j+1)) + DIP(i-1,:)];
 end
 
@@ -144,7 +144,7 @@ R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
 % We are rotating the palm_plane by angle theta around vector K
 R_thumb = R2*R1;
 
-[x,y,z] = sph2cart(-unproTable.TCMC_flex(grasp_time),-unproTable.TMCP_abd(grasp_time),lengths(2));
+[x,y,z] = sph2cart(unproTable.TCMC_flex(grasp_time),unproTable.TMCP_abd(grasp_time),lengths(2));
 TMCP = [x,y,z];
 TMCP = (R_thumb*TMCP')';
 TMCP_mag = sqrt(TMCP(:,1).^2 + TMCP(:,2).^2 + TMCP(:,3).^2);
@@ -160,9 +160,9 @@ thumb_plane2 = -thumb_plane2./norm(thumb_plane2);
 TMCP = TMCP + knuckles(1,:);
 
 K = [0 -thumb_plane2(3) thumb_plane2(2); thumb_plane2(3) 0 -thumb_plane2(1); -thumb_plane2(2) thumb_plane2(1) 0];
-R = eye(3) + sin(unproTable.TMCP_flex(grasp_time)-pi)*K + (1-cos(unproTable.TMCP_flex(grasp_time)-pi))*K*K;
+R = eye(3) + sin(unproTable.TMCP_flex(grasp_time))*K + (1-cos(unproTable.TMCP_flex(grasp_time)))*K*K;
 TIP = (R*(TMCP-knuckles(1,:))')'.*(lengths(3)/lengths(2)) + TMCP;
-R = eye(3) + sin(unproTable.TIP_flex(grasp_time)-pi)*K + (1-cos(unproTable.TIP_flex(grasp_time)-pi))*K*K;
+R = eye(3) + sin(unproTable.TIP_flex(grasp_time))*K + (1-cos(unproTable.TIP_flex(grasp_time)))*K*K;
 TT = (R*(TIP-TMCP)')'.*(lengths(4)/lengths(3)) + TIP;
 
 % Elbow starts in the direction of MMCP to W
@@ -190,7 +190,7 @@ axis = cross(new_z_axis, palm_plane)/norm(cross(new_z_axis, palm_plane));
 K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
 R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
 R_Elbow = R2*R1;
-[x,y,z] = sph2cart(unproTable.W_abd(grasp_time),-unproTable.W_flex(grasp_time)+pi/2,lengths(23));
+[x,y,z] = sph2cart(unproTable.W_abd(grasp_time),unproTable.W_flex(grasp_time),lengths(23));
 E = [x,y,z];
 E = (R_Elbow*E')';
 %E = E*lengths(23)/norm(E);
@@ -205,7 +205,7 @@ R = eye(3) + sin(unproTable.W_rot(grasp_time))*K + (1-cos(unproTable.W_rot(grasp
 E_axis = -(R*forearm_ref')';
 K = [0 -E_axis(3) E_axis(2); E_axis(3) 0 -E_axis(1); -E_axis(2) E_axis(1) 0];
 % R = eye(3) + sin(unproTable.RE_flex(grasp_time)-pi/2)*K + (1-cos(unproTable.RE_flex(grasp_time)-pi/2))*K*K;
-R = eye(3) + sin(unproTable.RE_flex(grasp_time)-pi)*K + (1-cos(unproTable.RE_flex(grasp_time)-pi))*K*K;
+R = eye(3) + sin(unproTable.RE_flex(grasp_time))*K + (1-cos(unproTable.RE_flex(grasp_time)))*K*K;
 S = (R*E')'.*lengths(22)./lengths(23) + E;
 
 s_third_axis = cross(E_axis,(S-E),2);
@@ -231,7 +231,7 @@ R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
 % We are rotating the palm_plane by angle theta around vector K
 R_Shoulder = R2*R1;
 
-[x,y,z] = sph2cart(unproTable.RS_flex(grasp_time),unproTable.RS_abd(grasp_time)-pi/2,lengths(21));
+[x,y,z] = sph2cart(unproTable.RS_flex(grasp_time),unproTable.RS_abd(grasp_time),lengths(21));
 C = [x,y,z];
 C = (R_Shoulder*C')' + S;
 
