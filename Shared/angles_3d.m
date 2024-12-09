@@ -1,12 +1,12 @@
 close all; clear all; clc;
-%src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p10\Instructions_BAT1\20240730T101748-101755_angles.csv';
-%src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p10\Instructions_BAT1\20240730T101748-101755_filtered.csv';
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p10\Instructions_BAT1\20240730T101748-101755_angles.csv';
+% src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p10\Instructions_BAT1\20240730T101748-101755_filtered.csv';
 src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p21\Instructions_DIG1\20240816T134146-134155_filtered.csv';
 src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p21\Instructions_DIG1\20240816T134146-134155_angles.csv';
-%src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p23\Instructions_COO6\20240902T110850-110901_filtered.csv';
-%src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p23\Instructions_COO6\20240902T110850-110901_angles.csv';
-%src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p19\Instructions_COO1\20240809T124742-124752_filtered.csv';
-%src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p19\Instructions_COO1\20240809T124742-124752_angles.csv';
+% src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p23\Instructions_COO6\20240902T110850-110901_filtered.csv';
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p23\Instructions_COO6\20240902T110850-110901_angles.csv';
+% src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p19\Instructions_COO1\20240809T124742-124752_filtered.csv';
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p19\Instructions_COO1\20240809T124742-124752_angles.csv';
 
 unproTable = fullfile(src);
 unproTable = readtable(unproTable);
@@ -195,16 +195,28 @@ E = [x,y,z];
 E = (R_Elbow*E')';
 %E = E*lengths(23)/norm(E);
 
-forearm_np = E.*((palm_plane(:,1).*E(:,1) + palm_plane(:,2).*E(:,2) + palm_plane(:,3).*E(:,3))./(lengths(23).^2));   % Vector component normal to the palm plane
-forearm_p = [palm_plane(:,1)-forearm_np(:,1),palm_plane(:,2)-forearm_np(:,2),palm_plane(:,3)-forearm_np(:,3)];                                       % Vector component on the palm plane
+% forearm_np = E.*((palm_plane(:,1).*E(:,1) + palm_plane(:,2).*E(:,2) + palm_plane(:,3).*E(:,3))./(lengths(23).^2));   % Vector component normal to the palm plane
+% forearm_p = [palm_plane(:,1)-forearm_np(:,1),palm_plane(:,2)-forearm_np(:,2),palm_plane(:,3)-forearm_np(:,3)];        % Vector component on the palm plane
+% forearmmag = sqrt(forearm_p(:,1).^2 + forearm_p(:,2).^2 + forearm_p(:,3).^2);
+% forearm_ref = forearm_p./forearmmag;
+
+v1_np = palm_plane.*(knuckles(3,1).*palm_plane(:,1) + knuckles(3,2).*palm_plane(:,2) + knuckles(3,3).*palm_plane(:,3));   % Vector component normal to the palm plane
+v1_p = [knuckles(3,1)-v1_np(:,1),knuckles(3,2)-v1_np(:,2),knuckles(3,3)-v1_np(:,3)];                                       % Vector component on the palm plane
+v1mag = sqrt(v1_p(:,1).^2 + v1_p(:,2).^2 + v1_p(:,3).^2);
+wrist_forward = v1_p./v1mag;
+wrist_fe_axis = cross(palm_plane,wrist_forward,2);  % Wrist flexion axis
+wrist_fe_axis_mag = sqrt(wrist_fe_axis(:,1).^2 + wrist_fe_axis(:,2).^2 + wrist_fe_axis(:,3).^2);
+wrist_fe_axis = wrist_fe_axis./wrist_fe_axis_mag;
+forearm_np = E.*((wrist_fe_axis(:,1).*E(:,1) + wrist_fe_axis(:,2).*E(:,2) + wrist_fe_axis(:,3).*E(:,3))./(lengths(23).^2));   % Vector component normal to the palm plane
+forearm_p = [wrist_fe_axis(:,1)-forearm_np(:,1),wrist_fe_axis(:,2)-forearm_np(:,2),wrist_fe_axis(:,3)-forearm_np(:,3)];        % Vector component on the palm plane
 forearmmag = sqrt(forearm_p(:,1).^2 + forearm_p(:,2).^2 + forearm_p(:,3).^2);
 forearm_ref = forearm_p./forearmmag;
+
 E_rot = E/lengths(23);
 K = [0 -E_rot(3) E_rot(2); E_rot(3) 0 -E_rot(1); -E_rot(2) E_rot(1) 0];
-R = eye(3) + sin(unproTable.W_rot(grasp_time))*K + (1-cos(unproTable.W_rot(grasp_time)))*K*K;
-E_axis = -(R*forearm_ref')';
+R = eye(3) + sin(-unproTable.W_rot(grasp_time))*K + (1-cos(-unproTable.W_rot(grasp_time)))*K*K;
+E_axis = (R*forearm_ref')';
 K = [0 -E_axis(3) E_axis(2); E_axis(3) 0 -E_axis(1); -E_axis(2) E_axis(1) 0];
-% R = eye(3) + sin(unproTable.RE_flex(grasp_time)-pi/2)*K + (1-cos(unproTable.RE_flex(grasp_time)-pi/2))*K*K;
 R = eye(3) + sin(unproTable.RE_flex(grasp_time))*K + (1-cos(unproTable.RE_flex(grasp_time)))*K*K;
 S = (R*E')'.*lengths(22)./lengths(23) + E;
 
@@ -283,8 +295,6 @@ ReferencePlot = plot3([C(1),N(1)], ...
 xlabel('x (mm)')
 ylabel('y (mm)')
 zlabel('z (mm)')
-flag = 1;
-
 
 %% Drawing original
 alignment_transformed = [];
@@ -334,5 +344,4 @@ zlabel('z (mm)')
 % set(gca, 'fontsize',14)
 % set(gcf,'position',[200,200,700,600])
 % view([210 40])
-flag = 1;
 % end
