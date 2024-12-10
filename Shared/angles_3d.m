@@ -7,11 +7,34 @@ src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_
 % src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p23\Instructions_COO6\20240902T110850-110901_angles.csv';
 % src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\filter_participant\p19\Instructions_COO1\20240809T124742-124752_filtered.csv';
 % src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant_2\p19\Instructions_COO1\20240809T124742-124752_angles.csv';
+% src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized';
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_angles_2';
+
+varNames = {'TCMC_x','TCMC_y','TCMC_z','TMCP_x','TMCP_y','TMCP_z','TIP_x','TIP_y','TIP_z',...
+    'TT_x','TT_y','TT_z','IMCP_x','IMCP_y','IMCP_z','IPIP_x','IPIP_y','IPIP_z',...
+    'IDIP_x','IDIP_y','IDIP_z','IT_x','IT_y','IT_z','MMCP_x','MMCP_y','MMCP_z',...
+    'MPIP_x','MPIP_y','MPIP_z','MDIP_x','MDIP_y','MDIP_z','MT_x','MT_y','MT_z',...
+    'RMCP_x','RMCP_y','RMCP_z','RPIP_x','RPIP_y','RPIP_z','RDIP_x','RDIP_y','RDIP_z',...
+    'RT_x','RT_y','RT_z','LMCP_x','LMCP_y','LMCP_z','LPIP_x','LPIP_y','LPIP_z',...
+    'LDIP_x','LDIP_y','LDIP_z','LT_x','LT_y','LT_z','RE_x','RE_y','RE_z',...
+    'RS_x','RS_y','RS_z','C_x','C_y','C_z','N_x','N_y','N_z'};
+
+% cattemp = dir(fullfile(src,'*'));
+% catfolder = setdiff({cattemp([cattemp.isdir]).name},{'.','..'});
+% for catfolder_i = 1:numel(catfolder)
+%     trialtemp = dir(fullfile(src,catfolder{catfolder_i},'*.csv'));
+%     trialfolder = {trialtemp(~[trialtemp.isdir]).name};
+%     trialtemp_3d = dir(fullfile(src_3d,catfolder{catfolder_i},'*.csv'));
+%     trialfolder_3d = {trialtemp_3d(~[trialtemp_3d.isdir]).name};
+%     ComparisonArray = [];
+%     for trialfolder_j = 1:numel(trialfolder)
 
 unproTable = fullfile(src);
+% unproTable = fullfile(src,catfolder{catfolder_i},trialfolder{trialfolder_j});
 unproTable = readtable(unproTable);
 %% Getting limb lengths
 T = fullfile(src_3d);
+% T = fullfile(src_3d,catfolder{catfolder_i},trialfolder_3d{trialfolder_j});
 T = readtable(T);
 original = table2array(T);
 original_table = T(:,[4:63,67:78]);
@@ -193,12 +216,6 @@ R_Elbow = R2*R1;
 [x,y,z] = sph2cart(unproTable.W_abd(grasp_time),unproTable.W_flex(grasp_time),lengths(23));
 E = [x,y,z];
 E = (R_Elbow*E')';
-%E = E*lengths(23)/norm(E);
-
-% forearm_np = E.*((palm_plane(:,1).*E(:,1) + palm_plane(:,2).*E(:,2) + palm_plane(:,3).*E(:,3))./(lengths(23).^2));   % Vector component normal to the palm plane
-% forearm_p = [palm_plane(:,1)-forearm_np(:,1),palm_plane(:,2)-forearm_np(:,2),palm_plane(:,3)-forearm_np(:,3)];        % Vector component on the palm plane
-% forearmmag = sqrt(forearm_p(:,1).^2 + forearm_p(:,2).^2 + forearm_p(:,3).^2);
-% forearm_ref = forearm_p./forearmmag;
 
 v1_np = palm_plane.*(knuckles(3,1).*palm_plane(:,1) + knuckles(3,2).*palm_plane(:,2) + knuckles(3,3).*palm_plane(:,3));   % Vector component normal to the palm plane
 v1_p = [knuckles(3,1)-v1_np(:,1),knuckles(3,2)-v1_np(:,2),knuckles(3,3)-v1_np(:,3)];                                       % Vector component on the palm plane
@@ -256,6 +273,10 @@ K = [0 -chest_axis(3) chest_axis(2); chest_axis(3) 0 -chest_axis(1); -chest_axis
 R = eye(3) + sin(unproTable.RS_rot(grasp_time))*K + (1-cos(unproTable.RS_rot(grasp_time)))*K*K;
 N = (R*unit_shoulder_norm')'*-100+C;
 
+% ComparisonArray = [ComparisonArray;[knuckles(1,:),TMCP,TIP,TT,knuckles(2,:),PIP(1,:),DIP(1,:),Tip(1,:),...
+%     knuckles(3,:),PIP(2,:),DIP(2,:),Tip(2,:),knuckles(4,:),PIP(3,:),DIP(3,:),Tip(3,:),...
+%     knuckles(5,:),PIP(4,:),DIP(4,:),Tip(4,:),E,S,C,N]];
+
 %% Drawing reprojection
 figure
 hold on;
@@ -289,9 +310,6 @@ ReferencePlot = plot3([C(1),N(1)], ...
      [C(3),N(3)], ...
      '-o', 'MarkerSize',3,'MarkerFaceColor',"#7E2F8E", 'Color',"#7E2F8E");
 
-% xlim([-200 100])
-% ylim([-100 200])
-% zlim([-200 100])
 xlabel('x (mm)')
 ylabel('y (mm)')
 zlabel('z (mm)')
@@ -334,14 +352,8 @@ ReferencePlot = plot3([Nose(1),alignment_transformed(61)], ...
      [Nose(2),alignment_transformed(62)], ...
      [Nose(3),alignment_transformed(63)], ...
      '-o', 'MarkerSize',3,'MarkerFaceColor',"#7E2F8E", 'Color','k');
-xlabel('x (mm)')
-ylabel('y (mm)')
-zlabel('z (mm)')
-% titlestr = strcat("Average hand position of grasp type: ", mainfolder{k});
-% title(titlestr, 'Interpreter', 'none')
-% set(gca, 'XDir','reverse')
-% set(gca, 'ZDir','reverse')
-% set(gca, 'fontsize',14)
-% set(gcf,'position',[200,200,700,600])
-% view([210 40])
+%     end
+%     ComparisonTable = array2table(ComparisonArray, 'VariableNames', varNames);
+%     outloc = fullfile("Comparison/",strcat(catfolder{catfolder_i},"_compare.csv"));
+%     writetable(ComparisonTable,outloc);
 % end
