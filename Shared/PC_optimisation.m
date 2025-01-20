@@ -50,7 +50,7 @@ sig_all = sig_all.significant_80;
 maintemp = dir(fullfile(src_3d,'*'));
 mainfolder = setdiff({maintemp([maintemp.isdir]).name},{'.','..'});
 
-focus_cat = 8;
+focus_cat = 6;
 allavgerr = [];
 apc_order = [];
 good_pc = [];
@@ -111,13 +111,11 @@ while d < 4
             % reproarr = proarr(:,1:sig)*pcarr(:,1:sig)' + repmat(meanarr,height(proarr),1);
             % reproarr = proarr(:,:)*pcarr(:,:)' + repmat(meanarr,height(proarr),1);
             % reproarr(any(isnan(reproarr), 2), :) = [];
-            if i > 1
-                reproarr(1:timeTable.end_time(end),:) = [];
-            end
             subtemp = dir(fullfile(src_3d,mainfolder{i},'*.csv'));
             subfolder = {subtemp(~[subtemp.isdir]).name};
             total_error = [];
             if i < focus_cat
+                reproarr(1:timeTable.end_time(end),:) = [];
                 continue
             end
             if i > focus_cat
