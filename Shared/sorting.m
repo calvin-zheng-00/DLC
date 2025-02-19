@@ -20,8 +20,8 @@ close all; clear all; clc;
 
 
 %% Sorting activities into categories
-src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\3d';
-dest = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_2';
+src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\angles_participant';
+dest = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_angles_2';
 
 df = fullfile("C:\Users\czhe0008\Documents\MATLAB\Openpose\grasp_type_2.csv");
 df = readtable(df);
@@ -33,19 +33,19 @@ for i = 1:numel(parfolder)
     acttemp = dir(fullfile(src,parfolder{i},'*'));
     actfolder = setdiff({acttemp([acttemp.isdir]).name},{'.','..'});
     for j = 1:numel(actfolder)
-        trialtemp = dir(fullfile(src,parfolder{i},actfolder{j},'*'));
-        trialfolder = setdiff({trialtemp([trialtemp.isdir]).name},{'.','..'});
+        % trialtemp = dir(fullfile(src,parfolder{i},actfolder{j},'*'));
+        % trialfolder = setdiff({trialtemp([trialtemp.isdir]).name},{'.','..'});
+        % for k = 1:numel(trialfolder)
+        %     file = fullfile(src,parfolder{i},actfolder{j},trialfolder{k},"df_3d.csv");
+        trialtemp = dir(fullfile(src,parfolder{i},actfolder{j},'*.csv'));
+        trialfolder = {trialtemp(~[trialtemp.isdir]).name};
         for k = 1:numel(trialfolder)
-            file = fullfile(src,parfolder{i},actfolder{j},trialfolder{k},"df_3d.csv");
-            if exist(file, 'file')
-                outloc = fullfile(dest,grasp(string(actfolder{j})),strcat(trialfolder{k},".csv"));
-                if not(isfolder(fullfile(dest,grasp(string(actfolder{j})))))
-                    mkdir(fullfile(dest,grasp(string(actfolder{j}))))
-                end
-                copyfile(file,outloc)
-            else
-                fprintf('Warning: file does not exist:\n%s', file);
+            file = fullfile(src,parfolder{i},actfolder{j},trialfolder{k});
+            outloc = fullfile(dest,grasp(string(actfolder{j})),trialfolder{k});
+            if not(isfolder(fullfile(dest,grasp(string(actfolder{j})))))
+                mkdir(fullfile(dest,grasp(string(actfolder{j}))))
             end
+            copyfile(file,outloc)
         end
     end
 end
