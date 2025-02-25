@@ -4,8 +4,8 @@
 
 close all; clear all; clc;
 
-%src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\data\high_thresh\angles';
-% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_angles_2';
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\data\high_thresh\angles';
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_angles';
 src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_2';
 pc_src = 'C:\Users\czhe0008\Documents\MATLAB\Openpose\PCA_coeffs\';
 mean_src = 'C:\Users\czhe0008\Documents\MATLAB\Openpose\PCA_mean\';
@@ -50,53 +50,27 @@ sig_all = sig_all.significant_80;
 maintemp = dir(fullfile(src_3d,'*'));
 mainfolder = setdiff({maintemp([maintemp.isdir]).name},{'.','..'});
 
-% cat1
-% 1	NaN	NaN	NaN
-% 1	4	NaN	NaN
-% 1	2	9	NaN
-% 1	2	4	9
-%1 2 9 4 5
-% 13.3244
-
-% cat2
-% 11	NaN	NaN	NaN	NaN
-% 10	22	NaN	NaN	NaN
-% 1	5	11	NaN	NaN
-% 1	5	10	22	NaN
-% 1	5	11	15	18
-
-% cat2 alt
-% 1 4 5 13 18
-% Error: 14.69
-
-% cat3
-% 1	NaN	NaN	NaN	NaN
-% 1	5	NaN	NaN	NaN
-% 1	3	6	NaN	NaN
-% 1	3	5	7	NaN
-% 1	3	5	6	17
-
-%% Methodology
-% Start by brute forcing 2PCs and 3PCs.
-% For every PC, Calculate previous optimum +1PC, opt-1 +2PCs, and opt-2 +3PCs.
-% Select the best performance
-
-focus_cat = 3;
-allavgerr = [];
-pcs = 1:28;
-prechose = [1,4,8,16,27];
-opt_num = 1;
-pcs(prechose) = [];
-opt = nchoosek(pcs,opt_num);
-loopnum = height(opt);
+focus_cat = 2;
 avgerrcomp = [];
-for r = 1:loopnum
-    fprintf(1, 'Loops left %d\n', loopnum-r);
-    repropc = [prechose,opt(r,:)];
-    reproarr = allproarr(:,repropc)*allpcarr(:,repropc)' + repmat(allmeanarr,height(allproarr),1);
-    avgerrcomp2 = [];
+err_rangecomp = [];
+avgerrcomp2 = [];
+err_rangecomp2 = [];
+
+% opt = [1,2,3,4,5;1,2,4,5,13;3,4,23,24,25;1,2,3,5,9;1,3,4,10,26;1,2,4,18,26;...
+%     1,2,3,4,5;1,2,3,4,10;1,3,4,6,19;2,5,18,21,26;1,2,4,5,24;1,2,3,4,5;1,2,4,5,6];
+% opt = [1,2,4,5,9;1,5,11,15,18;1,3,5,6,17];
+% opt = [1,2,4,5,9;1,4,5,13,18;1,3,5,6,17];
+opt = [5,8,9,14,22;1,4,17,26,28;1,4,8,16,27];
+
+for a = 1:2
+    avgerrcomp_t = [];
+    err_rangecomp_t = [];
+    repo_cp = 0;
     % Looping through categories
     for i = 1:numel(profolder)
+        if i > 3
+            continue
+        end
         % Loading files
         category = profolder{i};
         file = fullfile(pro_src,profolder{i});
@@ -116,33 +90,38 @@ for r = 1:loopnum
         unproarr = table2array(unproTable);         % Unprojected joint angles
         file = fullfile(comp_src,compfolder{i});
         compTable = readtable(file);                % 3d data generated from angle reprojection to compare PCs with
-        file = fullfile(sig_src,sigfolder{i});
-        sig = matfile(file);
-        sig = sig.curr_sig_80;                      % Significant PCs for each participant
-    
-        %% Reprojection
-        num_pcs = width(unproarr);
+        % file = fullfile(sig_src,sigfolder{i});
+        % sig = matfile(file);
+        % sig = sig.curr_sig_80;                      % Significant PCs for each participant
+
+        % if i < focus_cat
+        %     reproarr(1:timeTable.end_time(end),:) = [];
+        %     continue
+        % end
+        % if i > focus_cat
+        %     break
+        % end
     
         %% Edit which PCs are being reprojected
-        % reproarr = proarr(:,1:sig)*pcarr(:,1:sig)' + repmat(meanarr,height(proarr),1);
-        % reproarr = proarr(:,:)*pcarr(:,:)' + repmat(meanarr,height(proarr),1);
-        % reproarr(any(isnan(reproarr), 2), :) = [];
+        if a == 1
+            reproarr = allproarr(:,opt(i,:))*allpcarr(:,opt(i,:))' + repmat(allmeanarr,height(allproarr),1);
+        else
+            reproarr = allproarr(:,1:5)*allpcarr(:,1:5)' + repmat(allmeanarr,height(allproarr),1);
+        end
+        if repo_cp ~= 0
+            reproarr(1:repo_cp,:) = [];
+        end
+        repo_cp = repo_cp + timeTable.end_time(end);
+        total_error = [];
         subtemp = dir(fullfile(src_3d,mainfolder{i},'*.csv'));
         subfolder = {subtemp(~[subtemp.isdir]).name};
-        total_error = [];
-        if i < focus_cat
-            reproarr(1:timeTable.end_time(end),:) = [];
-            continue
-        end
-        if i > focus_cat
-            break
-        end
         temp = 1:numel(subfolder);
         temp = temp(randperm(length(temp)));
         temp = temp(1:min(100,length(temp)));
-        for j_temp = 1:100
-            j = temp(j_temp);
-        % for j = 1:numel(subfolder)
+        % temp = 50;
+        for j = 1:numel(subfolder)
+        % for j_temp = 1:100
+        %     j = temp(j_temp);
             %% Getting limb lengths
             grasp_time_3d = timeTable.grasp_time(j);
             grasp_time = timeTable.reach_time(j);
@@ -438,6 +417,81 @@ for r = 1:loopnum
             repo_ldip = (R*(DIP(4,:)-PIP(4,:))')'+repo_lpip;
             repo_lt = (R*(Tip(4,:)-DIP(4,:))')'+repo_ldip;
     
+            %% Drawing reprojection
+            % if (j == 1)% && (a==1)
+            if j == 50 %temp(1)
+                figure
+                hold on;
+                % New hand
+                ThumbPlotre = plot3([repo_e(1),repo_tcmc(1),repo_tmcp(1),repo_tip(1),repo_tt(1)], ...
+                    [repo_e(2),repo_tcmc(1,2),repo_tmcp(2),repo_tip(2),repo_tt(2)], ...
+                    [repo_e(3),repo_tcmc(1,3),repo_tmcp(3),repo_tip(3),repo_tt(3)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
+                IndexPlotre = plot3([repo_e(1),repo_imcp(1),repo_ipip(1),repo_idip(1),repo_it(1)], ...
+                    [repo_e(2),repo_imcp(2),repo_ipip(2),repo_idip(2),repo_it(2)], ...
+                    [repo_e(3),repo_imcp(3),repo_ipip(3),repo_idip(3),repo_it(3)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
+                MiddlePlotre = plot3([repo_e(1),repo_mmcp(1),repo_mpip(1),repo_mdip(1),repo_mt(1)], ...
+                    [repo_e(2),repo_mmcp(2),repo_mpip(2),repo_mdip(2),repo_mt(2)], ...
+                    [repo_e(3),repo_mmcp(3),repo_mpip(3),repo_mdip(3),repo_mt(3)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
+                RingPlotre = plot3([repo_e(1),repo_rmcp(1),repo_rpip(1),repo_rdip(1),repo_rt(1)], ...
+                    [repo_e(2),repo_rmcp(2),repo_rpip(2),repo_rdip(2),repo_rt(2)], ...
+                    [repo_e(3),repo_rmcp(3),repo_rpip(3),repo_rdip(3),repo_rt(3)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
+                LittlePlotre = plot3([repo_e(1),repo_lmcp(1),repo_lpip(1),repo_ldip(1),repo_lt(1)], ...
+                    [repo_e(2),repo_lmcp(2),repo_lpip(2),repo_ldip(2),repo_lt(2)], ...
+                    [repo_e(3),repo_lmcp(3),repo_lpip(3),repo_ldip(3),repo_lt(3)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',	'k', 'Color','k');
+                RightArmPlotre = plot3([0,repo_c(1),repo_s(1),repo_e(1)], ...
+                    [0,repo_c(2),repo_s(2),repo_e(2)], ...
+                    [0,repo_c(3),repo_s(3),repo_e(3)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor','k', 'Color','k');
+                ReferencePlot = plot3([0,repo_n(1)], ...
+                     [0,repo_n(2)], ...
+                     [0,repo_n(3)], ...
+                     '-o', 'MarkerSize',3,'MarkerFaceColor','k', 'Color','k');
+    
+                xlabel('x (mm)')
+                ylabel('y (mm)')
+                zlabel('z (mm)')
+                titlestr = ["optimised","unoptimised"];
+                title(titlestr(a))
+                view([190 30])
+
+                new_og = -[compTable.C_x(j),compTable.C_y(j),compTable.C_z(j)];
+
+                compTable(j,:) = compTable(j,:) + repmat(new_og,1,24);
+    
+                %% Drawing original
+                ThumbPlot = plot3([new_og(1),compTable.TCMC_x(j),compTable.TMCP_x(j),compTable.TIP_x(j),compTable.TT_x(j)], ...
+                    [new_og(2),compTable.TCMC_y(j),compTable.TMCP_y(j),compTable.TIP_y(j),compTable.TT_y(j)], ...
+                    [new_og(3),compTable.TCMC_z(j),compTable.TMCP_z(j),compTable.TIP_z(j),compTable.TT_z(j)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',[.7 .7 .7], 'Color',[.7 .7 .7]);
+                IndexPlot = plot3([new_og(1),compTable.IMCP_x(j),compTable.IPIP_x(j),compTable.IDIP_x(j),compTable.IT_x(j)], ...
+                    [new_og(2),compTable.IMCP_y(j),compTable.IPIP_y(j),compTable.IDIP_y(j),compTable.IT_y(j)], ...
+                    [new_og(3),compTable.IMCP_z(j),compTable.IPIP_z(j),compTable.IDIP_z(j),compTable.IT_z(j)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',[.7 .7 .7], 'Color',[.7 .7 .7]);
+                MiddlePlot = plot3([new_og(1),compTable.MMCP_x(j),compTable.MPIP_x(j),compTable.MDIP_x(j),compTable.MT_x(j)], ...
+                    [new_og(2),compTable.MMCP_y(j),compTable.MPIP_y(j),compTable.MDIP_y(j),compTable.MT_y(j)], ...
+                    [new_og(3),compTable.MMCP_z(j),compTable.MPIP_z(j),compTable.MDIP_z(j),compTable.MT_z(j)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',[.7 .7 .7], 'Color',[.7 .7 .7]);
+                RingPlot = plot3([new_og(1),compTable.RMCP_x(j),compTable.RPIP_x(j),compTable.RDIP_x(j),compTable.RT_x(j)], ...
+                    [new_og(2),compTable.RMCP_y(j),compTable.RPIP_y(j),compTable.RDIP_y(j),compTable.RT_y(j)], ...
+                    [new_og(3),compTable.RMCP_z(j),compTable.RPIP_z(j),compTable.RDIP_z(j),compTable.RT_z(j)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',[.7 .7 .7], 'Color',[.7 .7 .7]);
+                LittlePlot = plot3([new_og(1),compTable.LMCP_x(j),compTable.LPIP_x(j),compTable.LDIP_x(j),compTable.LT_x(j)], ...
+                    [new_og(2),compTable.LMCP_y(j),compTable.LPIP_y(j),compTable.LDIP_y(j),compTable.LT_y(j)], ...
+                    [new_og(3),compTable.LMCP_z(j),compTable.LPIP_z(j),compTable.LDIP_z(j),compTable.LT_z(j)], ...
+                    '-o', 'MarkerSize',3,'MarkerFaceColor',[.7 .7 .7], 'Color',[.7 .7 .7]);
+                RightArmPlot = plot3([new_og(1),compTable.RE_x(j),compTable.RS_x(j),compTable.C_x(j),compTable.N_x(j)], ...
+                     [new_og(2),compTable.RE_y(j),compTable.RS_y(j),compTable.C_y(j),compTable.N_y(j)], ...
+                     [new_og(3),compTable.RE_z(j),compTable.RS_z(j),compTable.C_z(j),compTable.N_z(j)], ...
+                     '-o', 'MarkerSize',3,'MarkerFaceColor',[.7 .7 .7], 'Color',[.7 .7 .7]);
+                legend([ThumbPlotre ThumbPlot],{'Reprojected', 'Original'},'Location','northeast')
+                fontsize(16,"points")
+            end
+    
             %% Calculating error
             % ComparisonArray = [knuckles(1,:),TMCP,TIP,TT,knuckles(2,:),PIP(1,:),DIP(1,:),Tip(1,:),...
             %     knuckles(3,:),PIP(2,:),DIP(2,:),Tip(2,:),knuckles(4,:),PIP(3,:),DIP(3,:),Tip(3,:),...
@@ -463,38 +517,99 @@ for r = 1:loopnum
         % total_error = array2table(total_error,"VariableNames",colnames3d);
         % writetable(total_error, strcat('Error_test\',mainfolder{i},'_error.csv'));
         %% optimisation criteria
+        focus_cat = i;
         % if ismember(focus_cat, [1,6,7,8,9,12])
         %     avg_error = mean(median(total_error(:,[4,8,12,16,20]),"omitnan"),"omitnan"); % Finger tips
+        %     error_range = mean(std(total_error(:,[4,8,12,16,20]),"omitnan")/sqrt(height(total_error)),"omitnan");
         % elseif focus_cat == 2
         %     avg_error = mean(median(total_error(:,[4,6,7,8]),"omitnan"),"omitnan"); % Thumb tip and index
+        %     error_range = mean(std(total_error(:,[4,6,7,8]),"omitnan")/sqrt(height(total_error)),"omitnan");
         % elseif ismember(focus_cat, [4,11,13])
         %     avg_error = mean(median(total_error(:,[4,8,12]),"omitnan"),"omitnan"); % Thumb, index and middle tips
+        %     error_range = mean(std(total_error(:,[4,8,12]),"omitnan")/sqrt(height(total_error)),"omitnan");
         % elseif focus_cat == 5
         %     avg_error = mean(median(total_error(:,[4,8,12,16]),"omitnan"),"omitnan"); % Thumb, index, middle and ring tips
+        %     error_range = mean(std(total_error(:,[4,8,12,16]),"omitnan")/sqrt(height(total_error)),"omitnan");
         % elseif focus_cat == 10
         %     avg_error = mean(median(total_error(:,[4,8]),"omitnan"),"omitnan"); % Thumb and index, tips
+        %     error_range = mean(std(total_error(:,[4,8]),"omitnan")/sqrt(height(total_error)),"omitnan");
         % elseif focus_cat == 3
         %     avg_error = mean(median(total_error(:,23),"omitnan"),"omitnan"); % Chest location
+        %     error_range = mean(std(total_error(:,23),"omitnan")/sqrt(height(total_error)),"omitnan");
         % end
         if focus_cat == 1
             avg_error = mean(median(total_error(:,[4,8,12,16,20]),"omitnan"),"omitnan"); % Finger tips
+            error_range = mean(std(total_error(:,[4,8,12,16,20]),"omitnan")/sqrt(height(total_error)),"omitnan");
+            if a == 1
+                ranksum_1_1 = mean(total_error(:,[4,8,12,16,20]),2,"omitnan");
+            else
+                ranksum_1_2 = mean(total_error(:,[4,8,12,16,20]),2,"omitnan");
+            end
         elseif focus_cat == 2
             avg_error = mean(median(total_error(:,[4,8]),"omitnan"),"omitnan"); % Thumb tip and index
+            error_range = mean(std(total_error(:,[4,8]),"omitnan")/sqrt(height(total_error)),"omitnan");
+            if a == 1
+                ranksum_2_1 = mean(total_error(:,[4,8]),2,"omitnan");
+            else
+                ranksum_2_2 = mean(total_error(:,[4,8]),2,"omitnan");
+            end
         elseif focus_cat == 3
             avg_error = mean(median(total_error(:,[4,8,12]),"omitnan"),"omitnan"); % Thumb, index and middle tips
+            error_range = mean(std(total_error(:,[4,8,12]),"omitnan")/sqrt(height(total_error)),"omitnan");
+            if a == 1
+                ranksum_3_1 = mean(total_error(:,[4,8,12]),2,"omitnan");
+            else
+                ranksum_3_2 = mean(total_error(:,[4,8,12]),2,"omitnan");
+            end
         end
-        avgerrcomp2 = [avgerrcomp2;avg_error];
+        avgerrcomp_t = [avgerrcomp_t;avg_error];
+        err_rangecomp_t = [err_rangecomp_t;error_range];
     end
-    avgerrcomp = [avgerrcomp;mean(avgerrcomp2)];
+    if a == 1
+        % avgerrcomp = [avgerrcomp;mean(avgerrcomp_t)];
+        % err_rangecomp = [err_rangecomp;mean(err_rangecomp_t)];
+        avgerrcomp = avgerrcomp_t;
+        err_rangecomp = err_rangecomp_t;
+    else
+        % avgerrcomp2 = [avgerrcomp2;mean(avgerrcomp_t)];
+        % err_rangecomp2 = [err_rangecomp2;mean(err_rangecomp_t)];
+        avgerrcomp2 = avgerrcomp_t;
+        err_rangecomp2 = err_rangecomp_t;
+    end
 end
-[minimum,idx] = min(avgerrcomp);
-good_pc = [prechose, opt(idx,:)];
-allavgerr = [allavgerr,minimum];
-
+% [minimum,idx] = min(avgerrcomp);
+% allavgerr = [allavgerr,minimum];
 
 figure
-b = bar(allavgerr);
+hold on
+b = bar([avgerrcomp,avgerrcomp2],'FaceColor','flat');
+b(1).CData = [0 0 0];
+b(2).CData = [1 1 1];
+% b = bar([avgerrcomp,avgerrcomp2],'FaceColor','flat');
+% b.CData(1,:) = [0 0 0];
+% b.CData(2,:) = [1 1 1];
+
+[p1,h1] = ranksum(ranksum_1_1,ranksum_1_2);
+[p2,h2] = ranksum(ranksum_2_1,ranksum_2_2);
+[p3,h3] = ranksum(ranksum_3_1,ranksum_3_2);
+
+% hB=bar(diag([avgerrcomp,avgerrcomp2],0),'stacked');
+% set(hB,{'FaceColor'},{'k';'w'})
+
+% er = errorbar([0.87,1.87,2.87,3.87,4.87,5.85,6.87,7.85,8.87,9.85,10.87,11.87,12.87],avgerrcomp,err_rangecomp,"LineStyle","none");
+% er2 = errorbar([1.13,2.13,3.13,4.13,5.13,6.15,7.13,8.15,9.13,10.15,11.13,12.13,13.13],avgerrcomp2,err_rangecomp2,"LineStyle","none");
+er = errorbar([0.87,1.87,2.87],avgerrcomp,err_rangecomp,"LineStyle","none");
+er2 = errorbar([1.13,2.13,3.13],avgerrcomp2,err_rangecomp2,"LineStyle","none");
+% er = errorbar(1,avgerrcomp,err_rangecomp,"LineStyle","none");
+% er2 = errorbar(2,avgerrcomp2,err_rangecomp2,"LineStyle","none");
+er.Color = [0.6 0.6 0.6];
+er2.Color = [0 0 0];
+
+xticks(1:28)
 title('Average error of finger tips during grasp')
-xlabel('PC number')
+xlabel('Grasp Category')
 ylabel('Error (mm)')
+% legend('optimised','unoptimised')
+hLg=legend({'optimised','unoptimised'},'Location','northwest');
 box off
+fontsize(16,"points")

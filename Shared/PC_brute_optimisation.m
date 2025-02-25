@@ -6,7 +6,7 @@ close all; clear all; clc;
 
 %src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\data\high_thresh\angles';
 % src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_angles_2';
-src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized';
+src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\categorized_2';
 pc_src = 'C:\Users\czhe0008\Documents\MATLAB\Openpose\PCA_coeffs\';
 mean_src = 'C:\Users\czhe0008\Documents\MATLAB\Openpose\PCA_mean\';
 pro_src = 'C:\Users\czhe0008\Documents\MATLAB\Openpose\Projection\';
@@ -50,10 +50,17 @@ sig_all = sig_all.significant_80;
 maintemp = dir(fullfile(src_3d,'*'));
 mainfolder = setdiff({maintemp([maintemp.isdir]).name},{'.','..'});
 
-focus_cat = 10;
-loops = 5;
+% 1,2,4,5
+focus_cat = 1;
+loops = 6;
 allavgerr = [];
 agood_pc = zeros(1,loops);
+
+% Add the following 2 lines and change the starting value of d to start
+% optimising from any point
+% agood_pc = [1,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN;1,2,NaN,NaN,NaN,NaN,NaN,NaN,NaN;1,2,4,NaN,NaN,NaN,NaN,NaN,NaN];
+% agood_pc = [1,NaN,NaN];
+% good_pc = [2,9];
 
 %% Methodology
 % Start by brute forcing 2PCs and 3PCs.
@@ -135,10 +142,14 @@ for d = 1:loops
             if i > focus_cat
                 break
             end
-            for j = 1:numel(subfolder)
-                if j > 5
-                    break
-                end
+            temp = 1:numel(subfolder);
+            temp = temp(randperm(length(temp)));
+            temp = temp(1:min(100,length(temp)));
+            for j_temp = 1:100
+                j = temp(j_temp);
+                % if j > 100
+                %     break
+                % end
                 %% Getting limb lengths
                 grasp_time_3d = timeTable.grasp_time(j);
                 grasp_time = timeTable.reach_time(j);
@@ -375,76 +386,66 @@ for d = 1:loops
                 K = [0 -chest_axis(3) chest_axis(2); chest_axis(3) 0 -chest_axis(1); -chest_axis(2) chest_axis(1) 0];
                 R = eye(3) + sin(reproarr(grasp_time,28))*K + (1-cos(reproarr(grasp_time,28)))*K*K;
                 N = (R*unit_shoulder_norm')'*-100+C;
-        
-                %% Drawing reprojection
-                % if d == 3
-                %     figure
-                %     hold on;
-                %     % New hand
-                %     ThumbPlot = plot3([0,knuckles(1,1),TMCP(1),TIP(1),TT(1)], ...
-                %         [0,knuckles(1,2),TMCP(2),TIP(2),TT(2)], ...
-                %         [0,knuckles(1,3),TMCP(3),TIP(3),TT(3)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor',	'r', 'Color','r');
-                %     IndexPlot = plot3([0,knuckles(2,1),PIP(1,1),DIP(1,1),Tip(1,1)], ...
-                %         [0,knuckles(2,2),PIP(1,2),DIP(1,2),Tip(1,2)], ...
-                %         [0,knuckles(2,3),PIP(1,3),DIP(1,3),Tip(1,3)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor',	'm', 'Color','m');
-                %     MiddlePlot = plot3([0,knuckles(3,1),PIP(2,1),DIP(2,1),Tip(2,1)], ...
-                %         [0,knuckles(3,2),PIP(2,2),DIP(2,2),Tip(2,2)], ...
-                %         [0,knuckles(3,3),PIP(2,3),DIP(2,3),Tip(2,3)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor',	'b', 'Color','b');
-                %     RingPlot = plot3([0,knuckles(4,1),PIP(3,1),DIP(3,1),Tip(3,1)], ...
-                %         [0,knuckles(4,2),PIP(3,2),DIP(3,2),Tip(3,2)], ...
-                %         [0,knuckles(4,3),PIP(3,3),DIP(3,3),Tip(3,3)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor',	'c', 'Color','c');
-                %     LittlePlot = plot3([0,knuckles(5,1),PIP(4,1),DIP(4,1),Tip(4,1)], ...
-                %         [0,knuckles(5,2),PIP(4,2),DIP(4,2),Tip(4,2)], ...
-                %         [0,knuckles(5,3),PIP(4,3),DIP(4,3),Tip(4,3)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor',	'g', 'Color','g');
-                %     RightArmPlot = plot3([0,E(1),S(1),C(1)], ...
-                %         [0,E(2),S(2),C(2)], ...
-                %         [0,E(3),S(3),C(3)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color',"#D95319");
-                %     ReferencePlot = plot3([C(1),N(1)], ...
-                %          [C(2),N(2)], ...
-                %          [C(3),N(3)], ...
-                %          '-o', 'MarkerSize',3,'MarkerFaceColor',"#7E2F8E", 'Color',"#7E2F8E");
-                % 
-                %     xlabel('x (mm)')
-                %     ylabel('y (mm)')
-                %     zlabel('z (mm)')
-                % 
-                %     %% Drawing original
-                %     ThumbPlot = plot3([0,compTable.TCMC_x(j),compTable.TMCP_x(j),compTable.TIP_x(j),compTable.TT_x(j)], ...
-                %         [0,compTable.TCMC_y(j),compTable.TMCP_y(j),compTable.TIP_y(j),compTable.TT_y(j)], ...
-                %         [0,compTable.TCMC_z(j),compTable.TMCP_z(j),compTable.TIP_z(j),compTable.TT_z(j)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor','r', 'Color','k');
-                %     IndexPlot = plot3([0,compTable.IMCP_x(j),compTable.IPIP_x(j),compTable.IDIP_x(j),compTable.IT_x(j)], ...
-                %         [0,compTable.IMCP_y(j),compTable.IPIP_y(j),compTable.IDIP_y(j),compTable.IT_y(j)], ...
-                %         [0,compTable.IMCP_z(j),compTable.IPIP_z(j),compTable.IDIP_z(j),compTable.IT_z(j)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor','m', 'Color','k');
-                %     MiddlePlot = plot3([0,compTable.MMCP_x(j),compTable.MPIP_x(j),compTable.MDIP_x(j),compTable.MT_x(j)], ...
-                %         [0,compTable.MMCP_y(j),compTable.MPIP_y(j),compTable.MDIP_y(j),compTable.MT_y(j)], ...
-                %         [0,compTable.MMCP_z(j),compTable.MPIP_z(j),compTable.MDIP_z(j),compTable.MT_z(j)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor','b', 'Color','k');
-                %     RingPlot = plot3([0,compTable.RMCP_x(j),compTable.RPIP_x(j),compTable.RDIP_x(j),compTable.RT_x(j)], ...
-                %         [0,compTable.RMCP_y(j),compTable.RPIP_y(j),compTable.RDIP_y(j),compTable.RT_y(j)], ...
-                %         [0,compTable.RMCP_z(j),compTable.RPIP_z(j),compTable.RDIP_z(j),compTable.RT_z(j)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor','c', 'Color','k');
-                %     LittlePlot = plot3([0,compTable.LMCP_x(j),compTable.LPIP_x(j),compTable.LDIP_x(j),compTable.LT_x(j)], ...
-                %         [0,compTable.LMCP_y(j),compTable.LPIP_y(j),compTable.LDIP_y(j),compTable.LT_y(j)], ...
-                %         [0,compTable.LMCP_z(j),compTable.LPIP_z(j),compTable.LDIP_z(j),compTable.LT_z(j)], ...
-                %         '-o', 'MarkerSize',3,'MarkerFaceColor','g', 'Color','k');
-                %     RightArmPlot = plot3([0,compTable.RE_x(j),compTable.RS_x(j),compTable.C_x(j),compTable.N_x(j)], ...
-                %          [0,compTable.RE_y(j),compTable.RS_y(j),compTable.C_y(j),compTable.N_y(j)], ...
-                %          [0,compTable.RE_z(j),compTable.RS_z(j),compTable.C_z(j),compTable.N_z(j)], ...
-                %          '-o', 'MarkerSize',3,'MarkerFaceColor',"#D95319", 'Color','k');
-                % end
+
+                %% Realigning to focus on arm difference
+                repo_c = C-S;
+                x_axis = [compTable.C_x(j),compTable.C_y(j),compTable.C_z(j)]-[compTable.RS_x(j),compTable.RS_y(j),compTable.RS_z(j)];
+                % Determine the angle between the vector and the x-axis
+                theta = acos(dot(repo_c, x_axis)/(norm(repo_c)*norm(x_axis)));
+                % Determine the axis of rotation
+                axis = cross(repo_c, x_axis)/norm(cross(repo_c, x_axis));
+                % Construct the rotation matrix using Rodrigues' formula
+                K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+                R1 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+    
+                repo_n_temp = (R1*(N-C)')';
+                comp_n = [compTable.N_x(j),compTable.N_y(j),compTable.N_z(j)]-[compTable.C_x(j),compTable.C_y(j),compTable.C_z(j)];
+                theta = acos(dot(repo_n_temp, comp_n)/(norm(repo_n_temp)*norm(comp_n)));
+                % Determine the axis of rotation
+                % axis = x_axis/norm(x_axis);
+                axis = (R1*(-repo_c)')'/norm((R1*(-repo_c)')');
+                % Construct the rotation matrix using Rodrigues' formula
+                K = [0 -axis(3) axis(2); axis(3) 0 -axis(1); -axis(2) axis(1) 0];
+                R2 = eye(3) + sin(theta)*K + (1-cos(theta))*K*K;
+                R = R2*R1;
+    
+                repo_c = (R*(-repo_c)')';
+                repo_s = (R*(E-S)')'+repo_c;
+                repo_e = (R*(-E)')'+repo_s;
+                repo_n = (R*(N-C)')';
+    
+                repo_tcmc = (R*(knuckles(1,:))')'+repo_e;
+                repo_tmcp = (R*(TMCP-knuckles(1,:))')'+repo_tcmc;
+                repo_tip = (R*(TIP-TMCP)')'+repo_tmcp;
+                repo_tt = (R*(TT-TIP)')'+repo_tip;
+    
+                repo_imcp = (R*(knuckles(2,:))')'+repo_e;
+                repo_ipip = (R*(PIP(1,:)-knuckles(2,:))')'+repo_imcp;
+                repo_idip = (R*(DIP(1,:)-PIP(1,:))')'+repo_ipip;
+                repo_it = (R*(Tip(1,:)-DIP(1,:))')'+repo_idip;
+    
+                repo_mmcp = (R*(knuckles(3,:))')'+repo_e;
+                repo_mpip = (R*(PIP(2,:)-knuckles(3,:))')'+repo_mmcp;
+                repo_mdip = (R*(DIP(2,:)-PIP(2,:))')'+repo_mpip;
+                repo_mt = (R*(Tip(2,:)-DIP(2,:))')'+repo_mdip;
+    
+                repo_rmcp = (R*(knuckles(4,:))')'+repo_e;
+                repo_rpip = (R*(PIP(3,:)-knuckles(4,:))')'+repo_rmcp;
+                repo_rdip = (R*(DIP(3,:)-PIP(3,:))')'+repo_rpip;
+                repo_rt = (R*(Tip(3,:)-DIP(3,:))')'+repo_rdip;
+    
+                repo_lmcp = (R*(knuckles(5,:))')'+repo_e;
+                repo_lpip = (R*(PIP(4,:)-knuckles(5,:))')'+repo_lmcp;
+                repo_ldip = (R*(DIP(4,:)-PIP(4,:))')'+repo_lpip;
+                repo_lt = (R*(Tip(4,:)-DIP(4,:))')'+repo_ldip;
         
                 %% Calculating error
-                ComparisonArray = [knuckles(1,:),TMCP,TIP,TT,knuckles(2,:),PIP(1,:),DIP(1,:),Tip(1,:),...
-                    knuckles(3,:),PIP(2,:),DIP(2,:),Tip(2,:),knuckles(4,:),PIP(3,:),DIP(3,:),Tip(3,:),...
-                    knuckles(5,:),PIP(4,:),DIP(4,:),Tip(4,:),E,S,C,N];
+                % ComparisonArray = [knuckles(1,:),TMCP,TIP,TT,knuckles(2,:),PIP(1,:),DIP(1,:),Tip(1,:),...
+                %     knuckles(3,:),PIP(2,:),DIP(2,:),Tip(2,:),knuckles(4,:),PIP(3,:),DIP(3,:),Tip(3,:),...
+                %     knuckles(5,:),PIP(4,:),DIP(4,:),Tip(4,:),E,S,C,N];
+                ComparisonArray = [repo_tcmc,repo_tmcp,repo_tip,repo_tt,repo_imcp,repo_ipip,repo_idip,repo_it,...
+                    repo_mmcp,repo_mpip,repo_mdip,repo_mt,repo_rmcp,repo_rpip,repo_rdip,repo_rt,...
+                    repo_lmcp,repo_lpip,repo_ldip,repo_lt,repo_e,repo_s,repo_c,repo_n];
                 Error = table2array(compTable(j,:))-ComparisonArray;
                 Distance = []*(length(Error)/3);
                 for k = 1:length(Error)/3
@@ -463,18 +464,25 @@ for d = 1:loops
             % total_error = array2table(total_error,"VariableNames",colnames3d);
             % writetable(total_error, strcat('Error_test\',mainfolder{i},'_error.csv'));
             %% optimisation criteria
-            if ismember(focus_cat, [1,6,7,8,9,12])
+            % if ismember(focus_cat, [1,6,7,8,9,12])
+            %     avg_error = mean(median(total_error(:,[4,8,12,16,20]),"omitnan"),"omitnan"); % Finger tips
+            % elseif focus_cat == 2
+            %     avg_error = mean(median(total_error(:,[4,6,7,8]),"omitnan"),"omitnan"); % Thumb tip and index
+            % elseif ismember(focus_cat, [4,11,13])
+            %     avg_error = mean(median(total_error(:,[4,8,12]),"omitnan"),"omitnan"); % Thumb, index and middle tips
+            % elseif focus_cat == 5
+            %     avg_error = mean(median(total_error(:,[4,8,12,16]),"omitnan"),"omitnan"); % Thumb, index, middle and ring tips
+            % elseif focus_cat == 10
+            %     avg_error = mean(median(total_error(:,[4,8]),"omitnan"),"omitnan"); % Thumb and index, tips
+            % elseif focus_cat == 3
+            %     avg_error = mean(median(total_error(:,23),"omitnan"),"omitnan"); % Chet location
+            % end
+            if focus_cat == 1
                 avg_error = mean(median(total_error(:,[4,8,12,16,20]),"omitnan"),"omitnan"); % Finger tips
             elseif focus_cat == 2
-                avg_error = mean(median(total_error(:,[4,6,7,8]),"omitnan"),"omitnan"); % Thumb tip and index
-            elseif ismember(focus_cat, [4,11,13])
-                avg_error = mean(median(total_error(:,[4,8,12]),"omitnan"),"omitnan"); % Thumb, index and middle tips
-            elseif focus_cat == 5
-                avg_error = mean(median(total_error(:,[4,8,12,16]),"omitnan"),"omitnan"); % Thumb, index, middle and ring tips
-            elseif focus_cat == 10
-                avg_error = mean(median(total_error(:,[4,8]),"omitnan"),"omitnan"); % Thumb and index, tips
+                avg_error = mean(median(total_error(:,[4,8]),"omitnan"),"omitnan"); % Thumb tip and index
             elseif focus_cat == 3
-                avg_error = mean(median(total_error(:,23),"omitnan"),"omitnan"); % Chet location
+                avg_error = mean(median(total_error(:,[4,8,12]),"omitnan"),"omitnan"); % Thumb, index and middle tips
             end
             avgerrcomp2 = [avgerrcomp2;avg_error];
         end
