@@ -4,8 +4,8 @@ all_grasp_true = [];
 for j = 1:31
     grasp_guess = [];
     grasp_true = [];
-    Gstr = strcat('LDA\24_07_update\PPJun25\GMotor',int2str(j),'.mat');
-    Pstr = strcat('LDA\24_07_update\PPJun25\PMotor',int2str(j),'.mat');
+    Gstr = strcat('LDA\GPJul2\GMotor',int2str(j),'.mat');
+    Pstr = strcat('LDA\GPJul2\PMotor',int2str(j),'.mat');
     load(Gstr)
     load(Pstr)
     % grasp_data = pre_data;
