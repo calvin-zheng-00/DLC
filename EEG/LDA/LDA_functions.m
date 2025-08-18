@@ -1,6 +1,6 @@
-close all; clear all; clc;
+%close all; clear all; clc;
 
-function rawdata_extract(filename,save_folder,triggers,start_bound,end_bound)
+function rawdata_extract(save_folder,filename,ALLEEG,triggers,start_bound,end_bound)
 % This function extracts the data opened by EEGLAB and saves it into a file
 % to be used by other functions.
 % filename (input): the name of the output file
@@ -12,7 +12,7 @@ function rawdata_extract(filename,save_folder,triggers,start_bound,end_bound)
 % end_bound (input): The amount of time (ms) to include after the trigger
 % File output format: There will be multiple output files, each being a 2D
 % matrix containing the raw EEG data between the start bound and end bound
-% times across all 31 channels, with each trigger having its own file.
+% times across trials (triggers), with each channel having its own file.
 
     data = ALLEEG.data'; % This contains all of the raw EEG data.
     loops = size(ALLEEG.event);
@@ -47,7 +47,7 @@ function rawdata_extract(filename,save_folder,triggers,start_bound,end_bound)
     end
 end
 
-function [grasp_guess,grasp_true] = LDA_extract(src,session,start_bound,end_bound,out_loc)
+function LDA_extract(src,session,start_bound,end_bound,out_loc)
 % This function converts the data prepared by the rawdata_extract function
 % into a feature matrix to be used in an LDA
 % src (input): the location of the EEG data
@@ -59,8 +59,7 @@ function [grasp_guess,grasp_true] = LDA_extract(src,session,start_bound,end_boun
 % out_loc (input): The output location to save the LDA features to.
 % File output format: There will be multiple output files, each being a 2D
 % matrix containing the features between the start bound and end bound
-% times across all 31 channels, with each trigger and class having its own
-% file.
+% times across all trials, with each channel having its own file.
 
     maintemp = dir(fullfile(src,'*'));
     mainfolder = setdiff({maintemp([maintemp.isdir]).name},{'.','..'});
@@ -68,29 +67,26 @@ function [grasp_guess,grasp_true] = LDA_extract(src,session,start_bound,end_boun
         data = [];
         for i = 1:numel(mainfolder)
             temp = cell2mat(mainfolder(i));
-            % Determine which folders to grab data from
+            % Determine which session folders to grab data from
             if (temp == session)
                 subtemp = dir(fullfile(src,mainfolder{i},'*.mat'));
                 subfolder = {subtemp(~[subtemp.isdir]).name};
                 for j = 1:numel(subfolder)
                     T = fullfile(src,mainfolder{i},subfolder{j});
                     load(T)
+                    % Create spectrogram
                     [~,~,~,ps] = spectrogram(save_flag(start_bound:end_bound,k),500,480,1000,1000,"power",'yaxis');
+                    % Normalize spectrogram
                     pretrigger_mean = mean(ps(:,1:50),2);
                     ps = ps./pretrigger_mean;
+                    % Select features from spectrogram
                     temp1 = [];
                     for m = 51:10:150
-                        alpha = 8:12;
-                        beta = 13:30;
-                        gamma = 31:80;
+                        alpha = 8:12; % Alpha band
+                        beta = 13:30; % Beta band
+                        gamma = 31:80; % Gamma band
                         temp1 = [temp1,mean(mean(ps(alpha,m:m+9))),mean(mean(ps(beta,m:m+9))),mean(mean(ps(gamma,m:m+9)))];
                     end
-                    % for m = 1:size(ps,2)
-                    %     alpha = 8:12;
-                    %     beta = 13:30;
-                    %     gamma = 31:80;
-                    %     temp1 = [temp1,mean(mean(ps(alpha,m))),mean(mean(ps(beta,m))),mean(mean(ps(gamma,m)))];
-                    % end
                     data = [data;temp1];
                 end
             end
@@ -136,14 +132,21 @@ end
 
 
 
-% Main code
+%% Main code
+%% EEG data extract code
+rawdata_extract("C:\Users\czhe0008\Documents\EEG\raw_data\test2\Aug_14_pinch_std\","Aug_14_pinch_std",ALLEEG,61:2:120,2499,4000)
+
+%% LDA feature selection code
+LDA_extract("C:\Users\czhe0008\Documents\EEG\raw_data\test2\","Aug_14_pinch_std",1001,4500,"C:\Users\czhe0008\Documents\EEG\LDA\reref_test\PSMotor")
+
+%% LDA code
 all_grasp_guess = [];
 all_grasp_true = [];
 for j = 1:31
     grasp_guess = [];
     grasp_true = [];
-    Gstr = strcat('LDA\24_07_update\GPJun25\GMotor',int2str(j),'.mat');
-    Pstr = strcat('LDA\move2\AMotor',int2str(j),'.mat');
+    Gstr = strcat('LDA\reref_test\GSMotor',int2str(j),'.mat');
+    Pstr = strcat('LDA\reref_test\PSMotor',int2str(j),'.mat');
     load(Gstr)
     grasp_data = data;
     load(Pstr)
@@ -156,23 +159,23 @@ for j = 1:31
     else
         channel = j + 1;
     end
-    figure(1)
+    figure(3)
     confusionchart(grasp_true,grasp_guess);
     figstr = strcat('Channel',int2str(channel));
     titlestr = strcat('Channel',int2str(channel));
     title(titlestr)
     fontsize(18,"points")
-    save_folder = 'C:\Users\czhe0008\Documents\EEG\LDA\GPJul2_fig\';
+    save_folder = 'C:\Users\czhe0008\Documents\EEG\LDA\reref_test_fig\';
     saveas(gcf,strcat(save_folder,figstr,'.png'))
-    close(1)
+    close(3)
 
     all_grasp_guess = [all_grasp_guess;grasp_guess];
     all_grasp_true = [all_grasp_true;grasp_true];
 end
 confusionchart(all_grasp_true,all_grasp_guess,'Normalization','row-normalized');
-figstr = strcat('move_grasp_Jun25_ChannelAll');
-titlestr = strcat('Grasp Jun25 Move vs No Move All Channels');
+figstr = strcat('reref_test_ChannelAll');
+titlestr = strcat('reref test All Channels');
 title(titlestr)
 fontsize(18,"points")
-save_folder = 'C:\Users\czhe0008\Documents\EEG\LDA\percentage_fig\';
+save_folder = 'C:\Users\czhe0008\Documents\EEG\LDA\reref_test_fig\';
 saveas(gcf,strcat(save_folder,figstr,'.png'))
