@@ -2,7 +2,7 @@
 % Channel 2 is used as the reference node, so subtract 1 from all channel
 % numbers except channel 1.
 
-data_set = 4;
+data_set = 1;
 loops_event = size(ALLEEG(data_set).event);
 loops_event = loops_event(2);
 
@@ -36,38 +36,38 @@ for i = 2:loops_event
     end
 end
 
-events = [];
-sync = [];
-for i = 2:loops_event
-    temp = ALLEEG(data_set).event(i).type;
-    temp(1:2) = [];
-    temp = str2double(temp);
-    events = [events,temp];
-    temp2 = ALLEEG(data_set).event(i).latency;
-    sync = [sync,temp2];
-end
+% events = [];
+% sync = [];
+% for i = 2:loops_event
+%     temp = ALLEEG(data_set).event(i).type;
+%     temp(1:2) = [];
+%     temp = str2double(temp);
+%     events = [events,temp];
+%     temp2 = ALLEEG(data_set).event(i).latency;
+%     sync = [sync,temp2];
+% end
 
 %% If new setup
-data = ALLEEG(data_set).data';
-reach_trigger = find(events == 1);
-return_trigger = find(events == 2);
-reach_start = sync(reach_trigger);
-
-for k = 1:31
-    save_flag = [];
-    for i = 1:length(reach_start)
-        data_points = (reach_start(i)-999):(reach_start(i)+2000);
-        if (reach_start(i)+2000)>size(data,1)
-            continue
-        end
-        save_flag = [save_flag,data(data_points,k)];
-        
-    end
-    save_folder = 'C:\Users\czhe0008\Documents\EEG\raw_data\test2\per_channel\';
-    if not(isfolder(save_folder))
-        mkdir(save_folder)
-    end
-    save_loc = strcat(save_folder,'channel',int2str(k),'.mat');
-
-    save(save_loc, "save_flag")
-end
+% data = ALLEEG(data_set).data';
+% reach_trigger = find(events == 1);
+% return_trigger = find(events == 2);
+% reach_start = sync(reach_trigger);
+% 
+% for k = 1:31
+%     save_flag = [];
+%     for i = 1:length(reach_start)
+%         data_points = (reach_start(i)-999):(reach_start(i)+2000);
+%         if (reach_start(i)+2000)>size(data,1)
+%             continue
+%         end
+%         save_flag = [save_flag,data(data_points,k)];
+% 
+%     end
+%     save_folder = 'C:\Users\czhe0008\Documents\EEG\raw_data\test2\per_channel\';
+%     if not(isfolder(save_folder))
+%         mkdir(save_folder)
+%     end
+%     save_loc = strcat(save_folder,'channel',int2str(k),'.mat');
+% 
+%     save(save_loc, "save_flag")
+% end
