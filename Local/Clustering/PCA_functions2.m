@@ -1,4 +1,4 @@
-function [generalSynergies,generalLatent,generalMu] = cosine_cluster(synergies, latent, mu)
+function generalSynergies = cosine_cluster(synergies)
 %% Example: Clustering Hand Synergies Across Subjects
     % Assume each column of 'synergies' is a synergy vector
     % Rows = joints, Columns = different synergies from all subjects
@@ -10,11 +10,13 @@ function [generalSynergies,generalLatent,generalMu] = cosine_cluster(synergies, 
     
     %% Step 2: Cluster synergies using hierarchical clustering
     Z = linkage(cosDist, 'average');  % hierarchical linkage method
-    
+
     % Plot dendrogram to visualize clustering
-    % figure;
-    % dendrogram(Z);
-    % title('Hierarchical Clustering of Synergies (Cosine Distance)');
+    figure;
+    dendrogram(Z,0,'ColorThreshold',0.9);
+    title('Hierarchical Clustering of Synergies (Cosine Distance)');
+    ylabel('Cosine Distance')
+    set(gca,'fontsize',14, 'TickDir', 'out')
     
     %% Step 3: Assign clusters
     % numClusters = 4;  % choose number of general synergies you expect
@@ -28,12 +30,12 @@ function [generalSynergies,generalLatent,generalMu] = cosine_cluster(synergies, 
     
     %% Step 4: Compute cluster centroids (general synergies)
     generalSynergies = zeros(size(synergies,1), numClusters);
-    generalLatent = zeros(size(latent,1), numClusters);
-    generalMu = zeros(size(mu,1), numClusters);
+    % generalLatent = zeros(size(latent,1), numClusters);
+    % generalMu = zeros(size(mu,1), numClusters);
     for k = 1:numClusters
         generalSynergies(:,k) = mean(synergies(:, clusterIdx == k), 2);
-        generalMu(:,k) = mean(mu(:, clusterIdx == k), 2);
-        generalLatent(k) = mean(latent(:, clusterIdx == k), 2);
+        % generalMu(:,k) = mean(mu(:, clusterIdx == k), 2);
+        % generalLatent(k) = mean(latent(:, clusterIdx == k), 2);
     end
     
     % Optional: normalize general synergies to unit length
@@ -43,21 +45,180 @@ function [generalSynergies,generalLatent,generalMu] = cosine_cluster(synergies, 
     % disp(generalSynergies);
 end
 
-function [coeff_general, latent_general, explained_general, mu_general] = general_2PCA(k)
+function generalSynergies = cosine_cluster2(sub_PC, task_PC)
+%% Example: Clustering Hand Synergies Across Subjects
+    % Assume each column of 'synergies' is a synergy vector
+    % Rows = joints, Columns = different synergies from all subjects
+    % Example: 15 joints, 12 synergies total (4 subjects × 3 synergies each)
+
+    %% Step 1: Transpose
+    X = task_PC'; % transpose to make synergies as rows
+    Y = sub_PC'; % transpose to make synergies as rows
+
+    %% Step 2: Cluster task synergies using hierarchical clustering
+    cosDist = pdist(X, 'cosine');
+    numClusters = size(Y,1);
+    Z = linkage(cosDist, 'complete');  % hierarchical linkage method
+    clusterIdx = cluster(Z, 'maxclust', numClusters);
+
+    %% Step 3: Reducing task pcs
+    medoids = zeros(numClusters, size(X,2));
+    medoidIdx    = zeros(numClusters,1);
+
+    for k = 1:numClusters
+        members = find(clusterIdx == k);
+        if numel(members) == 1
+            % Only one member in cluster
+            medoidIdx(k) = members;
+            medoids(k,:) = X(members,:);
+            continue;
+        end
+
+        % Compute pairwise distances *within normalized cluster*
+        D_sub = pdist2(X(members,:), X(members,:), 'cosine');
+
+        % Medoid = member with smallest total distance to others
+        [~, bestIdx] = min(sum(D_sub, 2));
+        medoidIdx(k) = members(bestIdx);
+
+        % Store corresponding rows from both normalized and raw data
+        medoids(k,:) = X(medoidIdx(k), :);
+    end
+
+    allPCs = [medoids;Y];
+    
+    %% Step 1: Compute pairwise cosine distance
+    % cosine distance = 1 - cosine similarity
+    cosDist = pdist(allPCs, 'cosine');  % transpose to make synergies as rows
+    
+    %% Step 2: Cluster synergies using hierarchical clustering
+    Z = linkage(cosDist, 'complete');  % hierarchical linkage method
+    
+    % 3️⃣ Find the largest distance jump
+    distances = Z(:,3);
+    [~, idxMaxJump] = max(diff(distances));
+    
+    % Number of clusters = total merges - index of biggest jump + 1
+    numClusters = size(Z,1) - idxMaxJump + 1;
+    
+    fprintf('Largest linkage distance jump at step %d → %d clusters\n', ...
+            idxMaxJump, numClusters);
+    
+    % 4️⃣ Assign clusters based on that threshold
+    clusterIdx = cluster(Z, 'maxclust', numClusters);
+
+    figure;
+    dendrogram(Z,0,'ColorThreshold',distances(idxMaxJump+1));
+    hold on;
+    yline(distances(idxMaxJump), 'r--', 'LineWidth', 1.5);
+    title(sprintf('Hierarchical Clustering (nClusters = %d)', numClusters));
+    xlabel('Observations'); ylabel('Linkage Distance');
+    % legend('Linkage','Cutoff threshold');
+    
+    %% Step 4: Compute cluster centroids (general synergies)
+    generalSynergies = zeros(numClusters, size(allPCs,2));
+    
+    for k = 1:numClusters
+        members = (clusterIdx == k);
+        if sum(members) == 0
+            continue;
+        end
+        % Average the original (unnormalized, unaligned) PCs in this cluster
+        Ck = mean(allPCs(members,:), 1);
+        generalSynergies(k,:) = Ck;
+    end
+end
+
+function [coeff_general, latent_general, explained_general] = general_2PCA2()
     src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\';
     src2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\';
-    mu_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_mean\';
+    src_la = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Latent\';
+    src_la2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\Latent\';
+    % Stack the first k PCs from each participant
+    sub_PC = [];
+    task_PC = [];
+    latemp = dir(fullfile(src_la,'*.csv'));
+    lafolder = {latemp(~[latemp.isdir]).name};
+    maintemp = dir(fullfile(src,'*.csv'));
+    mainfolder = {maintemp(~[maintemp.isdir]).name};
+    for i = 1:numel(mainfolder)
+        la_file = fullfile(src_la,lafolder{i});
+        laArray = table2array(readtable(la_file));
+        laArray = laArray > 1;
+        k_new = sum(laArray);
+        pc_file = fullfile(src,mainfolder{i});
+        thisTable = readtable(pc_file);
+        sub_PC = [sub_PC,table2array(thisTable(2:end,1:k_new))];
+    end
+    latemp2 = dir(fullfile(src_la2,'*.csv'));
+    lafolder2 = {latemp2(~[latemp2.isdir]).name};
+    maintemp2 = dir(fullfile(src2,'*.csv'));
+    mainfolder2 = {maintemp2(~[maintemp2.isdir]).name};
+    for i = 1:numel(mainfolder2)
+        la_file = fullfile(src_la2,lafolder2{i});
+        laArray = table2array(readtable(la_file));
+        laArray = laArray > 1;
+        k_new = sum(laArray);
+        pc_file = fullfile(src2,mainfolder2{i});
+        thisTable = readtable(pc_file);
+        task_PC = [task_PC,table2array(thisTable(2:end,1:k_new))];
+    end
+
+     %% Step 1: Transpose
+    X = task_PC'; % transpose to make synergies as rows
+    Y = sub_PC'; % transpose to make synergies as rows
+
+    %% Step 2: Cluster task synergies using hierarchical clustering
+    cosDist = pdist(X, 'cosine');
+    numClusters = size(Y,1);
+    Z = linkage(cosDist, 'complete');  % hierarchical linkage method
+    clusterIdx = cluster(Z, 'maxclust', numClusters);
+
+    %% Step 3: Reducing task pcs
+    medoids = zeros(numClusters, size(X,2));
+    medoidIdx    = zeros(numClusters,1);
+
+    for k = 1:numClusters
+        members = find(clusterIdx == k);
+        if numel(members) == 1
+            % Only one member in cluster
+            medoidIdx(k) = members;
+            medoids(k,:) = X(members,:);
+            continue;
+        end
+
+        % Compute pairwise distances *within normalized cluster*
+        D_sub = pdist2(X(members,:), X(members,:), 'cosine');
+
+        % Medoid = member with smallest total distance to others
+        [~, bestIdx] = min(sum(D_sub, 2));
+        medoidIdx(k) = members(bestIdx);
+
+        % Store corresponding rows from both normalized and raw data
+        medoids(k,:) = X(medoidIdx(k), :);
+    end
+
+    allPCs = [medoids;Y];
+
+    [coeff_general, ~, latent_general , ~, explained_general, ~] = pca(allPCs, 'Rows', 'pairwise');
+    latent_sig = latent_general > 1;
+    k_new = sum(latent_sig);
+    coeff_general = coeff_general(:,1:k_new);
+    % mu_general = mean(Mus,1)';
+end
+
+function [coeff_general, latent_general, explained_general] = general_2PCA()
+    src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\';
+    src2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\';
     % Stack the first 3 PCs from each participant
+    k = 3;
     PCs = [];
-    Mus = [];
     maintemp = dir(fullfile(src,'*.csv'));
     mainfolder = {maintemp(~[maintemp.isdir]).name};
     for i = 1:numel(mainfolder)
         file = fullfile(src,mainfolder{i});
         thisTable = readtable(file);
         PCs = [PCs,table2array(thisTable(2:end,1:k))];
-        MuTable = readtable(fullfile(mu_src,mainfolder{i}));
-        Mus = [Mus;table2array(MuTable)];
     end
     maintemp2 = dir(fullfile(src2,'*.csv'));
     mainfolder2 = {maintemp2(~[maintemp2.isdir]).name};
@@ -67,55 +228,100 @@ function [coeff_general, latent_general, explained_general, mu_general] = genera
         PCs = [PCs,table2array(thisTable(2:end,1:k))];
     end
     [coeff_general, ~, latent_general , ~, explained_general, ~] = pca(PCs', 'Centered', true);
-    mu_general = mean(Mus,1)';
 end
 
-function [coeff_general, latent_general, mu_general] = general_PCA_cluster(k)
-    src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\';
-    src2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\';
-    src_mu = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_mean\';
-    src_mu2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_mean\';
-    src_la = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Latent\';
-    src_la2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\Latent\';
-    % Stack the first 3 PCs from each participant
+function coeff_general = general_PCA_cluster(k)
+    src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\18_par\Participant_PC\PCA_coeffs\';
+    src2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\18_par\Activity_PC\PCA_coeffs\';
+    % src_mu = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\18_par\Participant_PC\PCA_mean\';
+    % src_mu2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\18_par\Activity_PC\PCA_mean\';
+    % src_la = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\18_par\Participant_PC\Latent\';
+    % src_la2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\18_par\Activity_PC\Latent\';
+    % Stack the first k PCs from each participant
     PCs = [];
-    Mus = [];
-    Las = [];
-    mutemp = dir(fullfile(src_mu,'*.csv'));
-    mufolder = {mutemp(~[mutemp.isdir]).name};
-    latemp = dir(fullfile(src_la,'*.csv'));
-    lafolder = {latemp(~[latemp.isdir]).name};
+    % Mus = [];
+    % Las = [];
+    % mutemp = dir(fullfile(src_mu,'*.csv'));
+    % mufolder = {mutemp(~[mutemp.isdir]).name};
+    % latemp = dir(fullfile(src_la,'*.csv'));
+    % lafolder = {latemp(~[latemp.isdir]).name};
     maintemp = dir(fullfile(src,'*.csv'));
     mainfolder = {maintemp(~[maintemp.isdir]).name};
     for i = 1:numel(mainfolder)
         file = fullfile(src,mainfolder{i});
         thisTable = readtable(file);
         PCs = [PCs,table2array(thisTable(2:end,1:k))];
-        file = fullfile(src_mu,mufolder{i});
-        thisArray = table2array(readtable(file));
-        Mus = [Mus,thisArray',thisArray',thisArray'];
-        file = fullfile(src_la,lafolder{i});
-        thisArray = table2array(readtable(file));
-        Las = [Las,thisArray(1:k)'];
+        % file = fullfile(src_mu,mufolder{i});
+        % thisArray = table2array(readtable(file));
+        % for j = 1:k
+        %     Mus = [Mus,thisArray'];
+        % end
+        % file = fullfile(src_la,lafolder{i});
+        % thisArray = table2array(readtable(file));
+        % Las = [Las,thisArray(1:k)'];
     end
-    mutemp2 = dir(fullfile(src_mu2,'*.csv'));
-    mufolder2 = {mutemp2(~[mutemp2.isdir]).name};
-    latemp2 = dir(fullfile(src_la2,'*.csv'));
-    lafolder2 = {latemp2(~[latemp2.isdir]).name};
+    % mutemp2 = dir(fullfile(src_mu2,'*.csv'));
+    % mufolder2 = {mutemp2(~[mutemp2.isdir]).name};
+    % latemp2 = dir(fullfile(src_la2,'*.csv'));
+    % lafolder2 = {latemp2(~[latemp2.isdir]).name};
     maintemp2 = dir(fullfile(src2,'*.csv'));
     mainfolder2 = {maintemp2(~[maintemp2.isdir]).name};
     for i = 1:numel(mainfolder2)
         file = fullfile(src2,mainfolder2{i});
         thisTable = readtable(file);
         PCs = [PCs,table2array(thisTable(2:end,1:k))];
-        file = fullfile(src_mu2,mufolder2{i});
-        thisArray = table2array(readtable(file));
-        Mus = [Mus,thisArray',thisArray',thisArray'];
-        file = fullfile(src_la2,lafolder2{i});
-        thisArray = table2array(readtable(file));
-        Las = [Las,thisArray(1:k)'];
+        % file = fullfile(src_mu2,mufolder2{i});
+        % thisArray = table2array(readtable(file));
+        % for j = 1:k
+        %     Mus = [Mus,thisArray'];
+        % end
+        % file = fullfile(src_la2,lafolder2{i});
+        % thisArray = table2array(readtable(file));
+        % Las = [Las,thisArray(1:k)'];
     end
-    [coeff_general,latent_general,mu_general] = cosine_cluster(PCs, Las, Mus);
+    [coeff_general] = cosine_cluster(PCs);
+end
+
+function [coeff_general,count1,count2] = general_PCA_cluster2()
+    src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\';
+    src2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\';
+    src_la = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Latent\';
+    src_la2 = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\Latent\';
+    % Stack the first k PCs from each participant
+    PCs_subject = [];
+    PCs_task = [];
+    count1 = [];
+    count2 = [];
+    latemp = dir(fullfile(src_la,'*.csv'));
+    lafolder = {latemp(~[latemp.isdir]).name};
+    maintemp = dir(fullfile(src,'*.csv'));
+    mainfolder = {maintemp(~[maintemp.isdir]).name};
+    for i = 1:numel(mainfolder)
+        la_file = fullfile(src_la,lafolder{i});
+        laArray = table2array(readtable(la_file));
+        laArray = laArray > 1;
+        k_new = sum(laArray);
+        pc_file = fullfile(src,mainfolder{i});
+        thisTable = readtable(pc_file);
+        PCs_subject = [PCs_subject,table2array(thisTable(2:end,1:k_new))];
+        count1 = [count1,k_new];
+    end
+    latemp2 = dir(fullfile(src_la2,'*.csv'));
+    lafolder2 = {latemp2(~[latemp2.isdir]).name};
+    maintemp2 = dir(fullfile(src2,'*.csv'));
+    mainfolder2 = {maintemp2(~[maintemp2.isdir]).name};
+    for i = 1:numel(mainfolder2)
+        la_file = fullfile(src_la2,lafolder2{i});
+        laArray = table2array(readtable(la_file));
+        laArray = laArray > 1;
+        k_new = sum(laArray);
+        pc_file = fullfile(src2,mainfolder2{i});
+        thisTable = readtable(pc_file);
+        PCs_task = [PCs_task,table2array(thisTable(2:end,1:k_new))];
+        count2 = [count2,k_new];
+    end
+    coeff_general = cosine_cluster2(PCs_subject,PCs_task);
+    coeff_general = coeff_general';
 end
 
 % function [coeff_general, latent_general, explained_general,mu_general] = participant_PCA()
@@ -474,12 +680,12 @@ function draw_skeleton(reproarr, colour, time, s_focus)
         [pos(24,2),pos(8,2),pos(12,2),pos(16,2),pos(20,2)], ...
         [pos(24,3),pos(8,3),pos(12,3),pos(16,3),pos(20,3)], ...
         '-o', 'MarkerSize',3,'MarkerFaceColor',	colour, 'Color',colour);
-    % if s_focus
-    RightArmPlotre = plot3([pos(24,1),pos(23,1),pos(22,1),pos(21,1)], ...
-        [pos(24,2),pos(23,2),pos(22,2),pos(21,2)], ...
-        [pos(24,3),pos(23,3),pos(22,3),pos(21,3)], ...
-        '-o', 'MarkerSize',3,'MarkerFaceColor',colour, 'Color',colour);
-    % end
+    if s_focus
+        RightArmPlotre = plot3([pos(24,1),pos(23,1),pos(22,1),pos(21,1)], ...
+            [pos(24,2),pos(23,2),pos(22,2),pos(21,2)], ...
+            [pos(24,3),pos(23,3),pos(22,3),pos(21,3)], ...
+            '-o', 'MarkerSize',3,'MarkerFaceColor',colour, 'Color',colour);
+    end
 
     set(gca,'DataAspectRatio',[1 1 1])
     xlabel('x (mm)')
@@ -490,12 +696,46 @@ function draw_skeleton(reproarr, colour, time, s_focus)
     view([240 20])
 end
 
-function synergy(co_gen, la_gen, mu_gen, sigma, k)
+function general_synergy(co_gen, mu_gen, k, amp)
+    mu_gen = mu_gen(1:21);
+    % K is the PC to visualize
+    t = 98;
+    mean_posture = mu_gen;
+    
+    % Visualize postures
+    posture_plus  = mean_posture + amp * co_gen(:,k);
+    % posture_minus = mean_posture - alpha * co_gen(:,k);
+    posture_plus = [posture_plus;0;0;0;0;0;0;0];
+    mean_posture = [mean_posture;0;0;0;0;0;0;0];
+    
+    figure
+    draw_skeleton(posture_plus,'r', t, 0);
+    % draw_skeleton(posture_minus','b');
+    draw_skeleton(mean_posture,'k', t, 0);
+    title(['Posture variation along PC ' num2str(k)]);
+    % legend('','','','','Synergy', 'Mean')
+
+    joint_names = ["TCMC_f","TMCP_f","TIP_f","IMCP_f","IPIP_f","IDIP_f","MMCP_f",...
+    "MPIP_f","MDIP_f","RMCP_f","RPIP_f","RDIP_f","LMCP_f","LPIP_f","LDIP_f",...
+    "TMCP_a","TCMC_r","IMCP_a","MMCP_a","RMCP_a","LMCP_a","W_a","W_f","W_r",...
+    "RE_f","RS_f","RS_a","RS_r"];
+    % joint_names2 = ["TCMC_f","TMCP_f","TIP_f","IMCP_f","IPIP_f","IDIP_f","MMCP_f",...
+    % "MPIP_f","MDIP_f","RMCP_f","RPIP_f","RDIP_f","LMCP_f","LPIP_f","LDIP_f",...
+    % "TMCP_a","TCMC_r","IMCP_a","MMCP_a","RMCP_a","LMCP_a"];
+    % figure
+    % bar(joint_names,co_gen(:,k),'w');
+    % xlabel('Joint');
+    % ylabel('Loading');
+    % title(['PC ' num2str(k) ' Coefficients'])
+    % set(gca,'fontsize',14, 'TickDir', 'out')
+end
+
+function synergy(co_gen, la_gen, mu_gen, sigma, k, dev)
     % mu_gen = mu_gen(1:21);
     % sigma = sigma(1:21);
     % K is the PC to visualize
     t = 98;
-    amp = 2 * sqrt(la_gen(k));  % 2 std deviations (can multiply to increase amplitude)
+    amp = dev * sqrt(la_gen(k));  % 2 std deviations (can multiply to increase amplitude)
     mean_posture = mu_gen;
     
     % Visualize postures
@@ -520,33 +760,39 @@ function synergy(co_gen, la_gen, mu_gen, sigma, k)
     xlabel('Joint');
     ylabel('Loading');
     title(['PC ' num2str(k) ' Coefficients'])
+    set(gca,'fontsize',14, 'TickDir', 'out')
 end
 
-function distance = reco_err(co_gen, mu_gen, sigma, k, time)
-    score_file = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Projection\p27.csv';
-    score = table2array(readtable(score_file));
-    score = score(10315,:); %10315 for bottle, 16406 for screw
-    recon = (score(:,1:k) * co_gen(:,1:k)')';
-    reproarr = recon .* repmat(sigma, 1, size(recon,2)) + repmat(mu_gen, 1, size(recon,2));
-    reproarr = reproarr';
-    file = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Bottle\filter\20241108T112102-112115_filtered.csv'; % 20241108T112102-112115 for bottle
-    file_true = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Bottle\angles\20241108T112102-112115_angles.csv'; % 20241106T104644-104656 for screw
-    angles_true = table2array(readtable(file_true));
-    angles_true = angles_true(time,:);
-    %% Drawing reprojection
-    % [TMCP;TIP;TT;TMCP;IMCP;MMCP;RMCP;LMCP;IPIP;MPIP;RPIP;LPIP;IDIP;MDIP;RDIP;LDIP;IT;MT;RT;LT;C;S;E;W];
-    % pos_guess = angle2pos(reproarr,file,time,1);
-    % pos_true = angle2pos(angles_true,file,time,1);
-    % error = pos_true-pos_guess;
-    % distance = [];
-    % for k = 1:size(error,1)
-    %     distance = [distance,sqrt(error(k,1)^2+error(k,2)^2+error(k,3)^2)];
-    % end
-    distance = angles_true - reproarr;
-    figure
-    hold on
-    draw_skeleton(reproarr','r', time, 0);
-    draw_skeleton(angles_true','k', time, 0);
+function distance = reco_err(co_gen, mu_gen, sigma, k, time, idx, score_file, file_true)
+    try
+        % score_file = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Projection\p27.csv';
+        score = table2array(readtable(score_file));
+        % idx = 10315;
+        score = score(idx,:); %10315 for bottle, 16406 for screw
+        recon = (score(:,1:k) * co_gen(:,1:k)')';
+        reproarr = recon .* repmat(sigma, 1, size(recon,2)) + repmat(mu_gen, 1, size(recon,2));
+        reproarr = reproarr';
+        % file = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Bottle\filter\20241108T112102-112115_filtered.csv'; % 20241108T112102-112115 for bottle
+        % file_true = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Bottle\angles\20241108T112102-112115_angles.csv'; % 20241106T104644-104656 for screw
+        angles_true = table2array(readtable(file_true));
+        angles_true = angles_true(time,:);
+        %% Drawing reprojection
+        % [TMCP;TIP;TT;TMCP;IMCP;MMCP;RMCP;LMCP;IPIP;MPIP;RPIP;LPIP;IDIP;MDIP;RDIP;LDIP;IT;MT;RT;LT;C;S;E;W];
+        % pos_guess = angle2pos(reproarr,file,time,1);
+        % pos_true = angle2pos(angles_true,file,time,1);
+        % error = pos_true-pos_guess;
+        % distance = [];
+        % for k = 1:size(error,1)
+        %     distance = [distance,sqrt(error(k,1)^2+error(k,2)^2+error(k,3)^2)];
+        % end
+        distance = angles_true - reproarr;
+        % figure
+        % hold on
+        % draw_skeleton(reproarr','r', time, 0);
+        % draw_skeleton(angles_true','k', time, 0);
+    catch
+        distance = zeros(1,28);
+    end
 end
 
 % function distance = avg_reco_err(co_gen, mu_gen, sigma, k, time)
@@ -630,49 +876,59 @@ end
 % draw_skeleton(reproarr','r');
 % 
 
+%% Graphing error distance
 close all; clear all; clc;
-% [co_gen2,la_gen2,mu_gen2] = general_PCA_cluster(4);
-% [co_gen,la_gen,ex_gen,mu_gen] = general_2PCA(4);
-sigma = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\All\sigma.csv'))';
-mu_gen = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\All\mu_global.csv'))';
-% for i = 1:4
-%     synergy(co_gen, la_gen, mu_gen, sigma, i);
-% end
+% writematrix(total_dis,'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\temp\cluster_recon_err.csv')
+% writematrix(total_dis,'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\temp\task_recon_err.csv')
 
-% subject_coeff = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\p26.csv'));
-% subject_coeff = subject_coeff(2:end,:);
-% object_coeff = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\Instructions_WRI4.csv')); % DIN8 and PHY8
-% object_coeff = object_coeff(2:end,:);
-% distance = reco_err(object_coeff, mu_gen, sigma, 4, 98); % 98 for bottle, 108 for screw
-
-total_dis = [];
-src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs';
+src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\error\p27_tasks';
 maintemp = dir(fullfile(src,'*.csv'));
 mainfolder = {maintemp(~[maintemp.isdir]).name};
-for i = 1:numel(mainfolder)
-    % if i == 39 % 39, 18
-    %     continue
-    % end
-    coeff = table2array(readtable(fullfile(src,mainfolder{i})));
-    coeff = coeff(2:end,:);
-    distance = reco_err(coeff, mu_gen, sigma, 4, 98);
-    total_dis = [total_dis,mean(abs(rad2deg(distance)))];
+total_dis = [];
+for i = 1:(numel(mainfolder)-1)
+    file = table2array(readtable(fullfile(src,mainfolder{i})));
+    total_dis = [total_dis;file];
 end
-avg_err = mean(total_dis);
 
+% total_dis = readmatrix('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\error\p27_pca2_err.csv');
 joint_names = ["TCMC_f","TMCP_f","TIP_f","IMCP_f","IPIP_f","IDIP_f","MMCP_f",...
     "MPIP_f","MDIP_f","RMCP_f","RPIP_f","RDIP_f","LMCP_f","LPIP_f","LDIP_f",...
     "TMCP_a","TCMC_r","IMCP_a","MMCP_a","RMCP_a","LMCP_a","W_a","W_f","W_r",...
     "RE_f","RS_f","RS_a","RS_r"];
-figure
-bar(joint_names,rad2deg(distance));
-xlabel("Joints")
-ylabel("Angle error (degrees)")
-title("Joint reconstruction error")
+meanPC = mean(rad2deg(total_dis));
+tot_mean = mean(abs(meanPC));
+semPC = std(rad2deg(total_dis))./sqrt(size(total_dis,1));
+meanPC = flip(meanPC);
+semPC = flip(semPC);
+f = figure;
+hold on
+barh(flip(joint_names),meanPC, 'w');
+errorbar(meanPC, 1:28, semPC, 'k.', 'horizontal', 'LineWidth', 1.2, 'CapSize', 10);
+ylabel("Joints")
+xlabel("Angle error (degrees)")
+title("Task Focused Joint Reconstruction Error")
+set(gca,'fontsize',14, 'TickDir', 'out')
+f.Position = [100 100 400 600];
 
-% joint_names2 = ["TCMC_f","TMCP_f","TIP_f","IMCP_f","IPIP_f","IDIP_f","MMCP_f",...
+hand = mean(abs(meanPC(8:end)));
+arm = mean(abs(meanPC(1:7)));
+
+%% Characterizing top 4 synergies
+[co_gen,count1,count2] = general_PCA_cluster2();
+% [co_gen,la_gen,ex_gen] = general_2PCA();
+% co_gen = co_gen(:,1:4);
+% sigma = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\All\sigma.csv'))';
+% mu_gen = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\All\mu_global.csv'))';
+% for i = 1:size(co_gen,2)
+%     general_synergy(co_gen, mu_gen, i, 2); % 2.5 for clustering, 8 for 2 stage
+% end
+
+
+%% two stage PCA variance explained
+% joint_names = ["TCMC_f","TMCP_f","TIP_f","IMCP_f","IPIP_f","IDIP_f","MMCP_f",...
 %     "MPIP_f","MDIP_f","RMCP_f","RPIP_f","RDIP_f","LMCP_f","LPIP_f","LDIP_f",...
-%     "TMCP_a","TCMC_r","IMCP_a","MMCP_a","RMCP_a","LMCP_a"];
+%     "TMCP_a","TCMC_r","IMCP_a","MMCP_a","RMCP_a","LMCP_a","W_a","W_f","W_r",...
+%     "RE_f","RS_f","RS_a","RS_r"];
 % for i = 1:5
 %     figure
 %     bar(joint_names,co_gen(:,i));
@@ -683,8 +939,97 @@ title("Joint reconstruction error")
 % end
 % ex_gen = cumsum(ex_gen);
 % figure
-% bar(ex_gen)
-% yline(80);
+% bar(ex_gen, 'w')
 % ylim([0 100])
 % xlabel('PC');
 % ylabel('Variance Explained');
+
+%% Reconstructing example task
+% subject_coeff = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\p26.csv'));
+% subject_coeff = subject_coeff(2:end,:);
+% object_coeff = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\Instructions_WRI4.csv')); % DIN8 and PHY8
+% object_coeff = object_coeff(2:end,:);
+% distance = reco_err(object_coeff, mu_gen, sigma, 4, 98); % 98 for bottle, 108 for screw
+
+%% Reconstructing all tasks
+sigma = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\All\sigma.csv'))';
+mu_gen = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\All\mu_global.csv'))';
+pro_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Projection\';
+time_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_times\';
+pc_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_coeffs\';
+angle_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\angle\';
+pctemp = dir(fullfile(pc_src,'*.csv'));
+pcfolder = {pctemp(~[pctemp.isdir]).name};
+protemp = dir(fullfile(pro_src,'*.csv'));
+profolder = {protemp(~[protemp.isdir]).name};
+timetemp = dir(fullfile(time_src,'*.csv'));
+timefolder = {timetemp(~[timetemp.isdir]).name};
+maintemp = dir(fullfile(angle_src,'*'));
+mainfolder = setdiff({maintemp([maintemp.isdir]).name},{'.','..'});
+total_dis = [];
+skip = 0;
+count = 0;
+for i = 1:numel(mainfolder)
+    %% For each participant
+    timeTable = readtable(fullfile(time_src,timefolder{i}));
+    % pcTable = table2array(readtable(fullfile(pc_src,pcfolder{i})));
+    % co_gen = pcTable(2:end,:);
+    acttemp = dir(fullfile(angle_src,mainfolder{i},'*'));
+    actfolder = setdiff({acttemp([acttemp.isdir]).name},{'.','..'});
+    for l = 1:numel(actfolder)
+        %% For each activity
+        % timeTable = readtable(fullfile(time_src,timefolder{l}));
+        % pcTable = table2array(readtable(fullfile(pc_src,pcfolder{l})));
+        % co_gen = pcTable(2:end,:);
+        subtemp = dir(fullfile(angle_src,mainfolder{i},actfolder{l},'*.csv'));
+        subfolder = {subtemp(~[subtemp.isdir]).name};
+        for j = 1:numel(subfolder)
+            % skip = skip + 1;
+            % if skip < 2482
+            %     continue
+            % end
+            file = fullfile(angle_src,mainfolder{i},actfolder{l},subfolder{j});
+            % angle_arr = table2array(readtable(file));
+            activity = subfolder{j};
+            activity = activity(1:end-11);
+            reach_time = timeTable.reach_time(strcmp(timeTable.activities, activity));
+            grasp_time = timeTable.grasp_time(strcmp(timeTable.activities, activity));
+            distance = reco_err(co_gen, mu_gen, sigma, 4, grasp_time, reach_time, fullfile(pro_src,profolder{i}), file);
+            total_dis = [total_dis;distance];
+        end
+    end
+end
+writematrix(total_dis,'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\error\cluster_recon_err2.csv')
+
+%% Reconstructing unseen task
+pro_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\Projection\p27.csv';
+time_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_times\p27.csv';
+pc_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_PC\PCA_coeffs\';
+angle_src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\angle\p27';
+pctemp = dir(fullfile(pc_src,'*.csv'));
+pcfolder = {pctemp(~[pctemp.isdir]).name};
+maintemp = dir(fullfile(angle_src,'*'));
+mainfolder = setdiff({maintemp([maintemp.isdir]).name},{'.','..'});
+timeTable = readtable(time_src);
+sigma = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\sigma\p27.csv'))';
+mu_gen = table2array(readtable('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Participant_PC\PCA_mean\p27.csv'))';
+% for h = 1:numel(pcfolder)
+%     pcTable = table2array(readtable(fullfile(pc_src,pcfolder{h})));
+%     co_gen = pcTable(2:end,:);
+total_dis = [];
+for i = 1:numel(mainfolder)
+    subtemp = dir(fullfile(angle_src,mainfolder{i},'*.csv'));
+    subfolder = {subtemp(~[subtemp.isdir]).name};
+    for j = 1:numel(subfolder)
+        file = fullfile(angle_src,mainfolder{i},subfolder{j});
+        % angle_arr = table2array(readtable(file));
+        activity = subfolder{j};
+        activity = activity(1:end-11);
+        reach_time = timeTable.reach_time(strcmp(timeTable.activities, activity));
+        grasp_time = timeTable.grasp_time(strcmp(timeTable.activities, activity));
+        distance = reco_err(co_gen, mu_gen, sigma, 4, grasp_time, reach_time, pro_src, file);
+        total_dis = [total_dis;distance];
+    end
+end
+writematrix(total_dis,strcat('C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\error\cluster_recon_err2_p27.csv'));
+% end

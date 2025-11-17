@@ -67,7 +67,7 @@ function PCA_filt(src,dest,threshold,increment)
                     if ~isfolder(fullfile(dest,partfolder{participant_i},actfolder{activity_k}))
                         mkdir(fullfile(dest,partfolder{participant_i},actfolder{activity_k}));
                     end
-                    writetable(df2,fullfile(dest,partfolder{participant_i},actfolder{activity_k},strcat(trialfolder{trial_j},"_filtered.csv")))
+                    writetable(df2,fullfile(dest,partfolder{participant_i},actfolder{activity_k},strcat(actfolder{activity_k},trialfolder{trial_j},"_filtered.csv")))
                 end
             end
         end
@@ -224,7 +224,7 @@ function PCA_act()
     % Finding PCs from individuals.
     src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\angle';
     src_3d = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\filter';
-    dest = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_hand_PC';
+    dest = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\Activity_Hand_PC';
     
     % allAngles = [];
     % allExplained = [];
@@ -560,64 +560,6 @@ function allExplained = PCA_test()%src,src_3d)
     end
 end
 
-function cosine_cluster(X)
-%% Example: Clustering Hand Synergies Across Subjects
-    % Assume each column of 'synergies' is a synergy vector
-    % Rows = joints, Columns = different synergies from all subjects
-    % Example: 15 joints, 12 synergies total (4 subjects × 3 synergies each)
-    synergies = X;  % replace with your actual data
-    
-    %% Step 1: Compute pairwise cosine distance
-    % cosine distance = 1 - cosine similarity
-    cosDist = pdist(synergies', 'cosine');  % transpose to make synergies as rows
-    
-    %% Step 2: Cluster synergies using hierarchical clustering
-    Z = linkage(cosDist, 'average');  % hierarchical linkage method
-    
-    % Plot dendrogram to visualize clustering
-    figure;
-    dendrogram(Z);
-    title('Hierarchical Clustering of Synergies (Cosine Distance)');
-    
-    %% Step 3: Assign clusters
-    numClusters = 3;  % choose number of general synergies you expect
-    clusterIdx = cluster(Z, 'maxclust', numClusters);
-    
-    % Display which synergy belongs to which cluster
-    disp('Synergy cluster assignments:');
-    disp(clusterIdx);
-    
-    %% Step 4: Compute cluster centroids (general synergies)
-    generalSynergies = zeros(size(synergies,1), numClusters);
-    for k = 1:numClusters
-        generalSynergies(:,k) = mean(synergies(:, clusterIdx == k), 2);
-    end
-    
-    % Optional: normalize general synergies to unit length
-    generalSynergies = generalSynergies ./ vecnorm(generalSynergies);
-    
-    disp('General synergies (cluster centroids):');
-    disp(generalSynergies);
-end
-
-function PCA_cluster(X)
-    % clustering PCs.
-    %X = abs(X);
-    Y = pdist(X,"cosine");
-    Z = linkage(Y,"average");
-    dendrogram(Z,72)
-    xlabel('Synergies')
-    ylabel('Cosine Distance (Pi Rad)')
-    title('Synergy clustering')
-    C = cophenet(Z,Y);
-    I = inconsistent(Z);
-    T = cluster(Z,"cutoff",1.1);
-    % T = cluster(Z,"maxclust",2)
-    % Or
-    T = clusterdata(X,Cutoff=cutoff);
-    T = clusterdata(X,MaxClust=maxclust);
-end
-
 function move_files()
     % Filter input data to find bad sessions
     src = 'C:\Users\czhe0008\Documents\DLCprojects\openpose\data_conversion\massive_3d\3d';
@@ -699,6 +641,9 @@ end
 
 close all; clear all; clc;
 PCA_act();
+% src = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\old\';
+% dest = 'C:\Users\czhe0008\Documents\DLCprojects\MATLAB\Clustering\filter_new\';
+% PCA_filt(src,dest,30,20);
 % [rating2,part_rating2,task_rating2] = PC_rating(ex,3,80);
 % src = 'C:\Users\czhe0008\Documents\MATLAB\Openpose\per_par\PCA_coeffs';
 % allPCs = [];
